@@ -1,0 +1,15 @@
+{
+  "name": "xiuxiangame-wiki",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "修仙世界游戏服务端官方文档",
+  "scripts": {
+    "dev": "vitepress dev docs",
+    "build": "vitepress build docs",
+    "preview": "vitepress preview docs"
+  },
+  "dependencies": {
+    "vitepress": "^1.5.0",
+    "vue": "^3.5.0"
+  }
+}
