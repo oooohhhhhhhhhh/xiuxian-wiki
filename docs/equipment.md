@@ -86,13 +86,13 @@
 | `/装备` | 查看已装备物品 |
 | `/穿戴 <物品>` | 穿戴物品 |
 | `/卸下 <物品>` | 卸下物品 |
-| `/强化 <物品>` | 强化装备 |
+| `/强化 <装备栏位>` | 强化装备（栏位：weapon/armor/accessory） |
 
 ### REST API
 
 | 方法 | 路径 | 说明 |
 |------|------|------|
-| GET | `/api/game/equipment/equipped` | 查看已装备 |
+| GET | `/api/game/equipment` | 查看已装备 |
 | POST | `/api/game/equipment/equip` | 穿戴装备 |
 | POST | `/api/game/equipment/unequip` | 卸下装备 |
 | POST | `/api/game/equipment/enhance` | 强化装备 |

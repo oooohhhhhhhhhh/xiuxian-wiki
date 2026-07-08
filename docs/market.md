@@ -58,11 +58,11 @@
 
 | 方法 | 路径 | 说明 |
 |------|------|------|
-| GET | `/api/game/economy/market/listings` | 查看挂单列表 |
-| POST | `/api/game/economy/market/list` | 挂单出售物品 |
-| POST | `/api/game/economy/market/buy` | 购买物品 |
-| DELETE | `/api/game/economy/market/listings/{id}` | 撤回挂单 |
-| GET | `/api/game/economy/market/my-listings` | 查看我的挂单 |
+| GET | `/api/game/market` | 查看挂单列表 |
+| POST | `/api/game/market/list` | 挂单出售物品 |
+| POST | `/api/game/market/buy` | 购买物品 |
+| POST | `/api/game/market/cancel` | 撤回挂单 |
+| GET | `/api/game/market/my_listings` | 查看我的挂单 |
 
 ## 交易策略
 

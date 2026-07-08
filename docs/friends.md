@@ -49,6 +49,6 @@
 | 方法 | 路径 | 说明 |
 |------|------|------|
 | GET | `/api/game/friend/list` | 查看好友列表 |
-| POST | `/api/game/friend/request` | 发送好友申请 |
+| POST | `/api/game/friend/add` | 发送好友申请 |
 | POST | `/api/game/friend/accept` | 接受好友申请 |
-| DELETE | `/api/game/friend/{playerName}` | 删除好友 |
+| POST | `/api/game/friend/remove` | 删除好友 |
