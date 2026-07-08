@@ -3,6 +3,7 @@ import { defineConfig } from 'vitepress'
 export default defineConfig({
   title: '修仙世界 Wiki',
   description: '修仙世界游戏服务端官方文档',
+  base: '/xiuxian-wiki/',
   cleanUrls: true,
   
   themeConfig: {
