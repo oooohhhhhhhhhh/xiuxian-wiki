@@ -468,6 +468,249 @@ public class WelcomePlugin extends Plugin {
 
 ---
 
+## 使用核心服务
+
+插件可以通过 `getServer()` 获取服务器实例，然后访问核心服务：
+
+```java
+@Override
+public void onEnable() {
+    Server server = getServer();
+    
+    // 获取玩家服务
+    PlayerService playerService = server.getPlayerService();
+    
+    // 获取物品服务
+    ItemService itemService = server.getItemService();
+    
+    // 获取战斗服务
+    CombatService combatService = server.getCombatService();
+    
+    // 获取宗门服务
+    SectService sectService = server.getSectService();
+    
+    // 获取技能服务
+    SkillService skillService = server.getSkillService();
+}
+```
+
+### 服务使用示例
+
+```java
+// 获取玩家信息
+Player player = playerService.getPlayerById(playerId);
+
+// 给玩家添加物品
+itemService.addItem(playerId, "spirit_stone", 100);
+
+// 给玩家添加经验
+playerService.addExperience(playerId, 500);
+
+// 发起切磋挑战
+CombatResult result = combatService.createChallenge(challengerId, targetId);
+
+// 创建宗门
+Map<String, Object> sectResult = sectService.createSect(playerId, "天道宗", "修仙正道第一宗");
+
+// 学习技能
+Map<String, Object> skillResult = skillService.learnSkill(playerId, skillId);
+```
+
+---
+
+## 注册自定义事件
+
+插件可以定义和触发自定义事件，供其他插件监听：
+
+```java
+import com.mtxgdn.event.Event;
+
+public class PlayerLevelUpEvent extends Event {
+    
+    private final long playerId;
+    private final int oldLevel;
+    private final int newLevel;
+    
+    public PlayerLevelUpEvent(long playerId, int oldLevel, int newLevel) {
+        this.playerId = playerId;
+        this.oldLevel = oldLevel;
+        this.newLevel = newLevel;
+    }
+    
+    public long getPlayerId() { return playerId; }
+    public int getOldLevel() { return oldLevel; }
+    public int getNewLevel() { return newLevel; }
+}
+```
+
+触发事件：
+
+```java
+getEventBus().fire(new PlayerLevelUpEvent(playerId, oldLevel, newLevel));
+```
+
+---
+
+## 注册物品
+
+插件可以注册自定义物品：
+
+```java
+import com.mtxgdn.game.item.Item;
+import com.mtxgdn.game.item.ItemEffect;
+import com.mtxgdn.game.item.ItemRarity;
+import com.mtxgdn.game.item.ItemType;
+
+@Override
+public void onEnable() {
+    Item customItem = new Item(
+        "custom_potion",           // itemKey
+        "神秘药剂",                // name
+        "一瓶散发着奇异光芒的药剂", // description
+        ItemType.CONSUMABLE,      // type
+        ItemRarity.RARE,          // rarity
+        100                       // price
+    );
+    
+    // 添加物品效果
+    customItem.addEffect(new ExpEffect(500));
+    customItem.addEffect(new HealEffect(200));
+    
+    // 注册物品
+    ItemRegistry.register(customItem);
+}
+```
+
+---
+
+## 注册游历事件
+
+插件可以注册自定义游历事件：
+
+```java
+import com.mtxgdn.game.explorationevent.ExplorationEvent;
+import com.mtxgdn.game.explorationevent.ExplorationEventRegistry;
+
+public class CustomExplorationEvent extends ExplorationEvent {
+    
+    public CustomExplorationEvent() {
+        super("mystery_cave", 10); // eventKey, weight
+    }
+    
+    @Override
+    public void execute(Player player, PlayerService playerService, 
+                        ItemService itemService, Random random,
+                        ExplorationResult result, List<String> log) {
+        log.add("你发现了一处神秘的洞穴...");
+        log.add("洞穴深处闪烁着微光，你获得了珍贵的宝藏！");
+        
+        // 给予奖励
+        itemService.addItem(player.getId(), "spirit_stone", random.nextInt(100, 500));
+        playerService.addExperience(player.getId(), random.nextInt(200, 500));
+        
+        result.setEventType("mystery_cave");
+        result.setMessage("你发现了神秘洞穴，获得了丰厚的奖励！");
+    }
+}
+```
+
+注册事件：
+
+```java
+@Override
+public void onEnable() {
+    ExplorationEventRegistry.register(new CustomExplorationEvent());
+}
+```
+
+---
+
+## 注册秘境
+
+插件可以注册自定义秘境区域：
+
+```java
+import com.mtxgdn.game.secretrealm.SecretRealm;
+import com.mtxgdn.game.secretrealm.SecretRealmRegistry;
+
+@Override
+public void onEnable() {
+    SecretRealm realm = new SecretRealm(
+        "forbidden_valley",        // areaKey
+        "禁地山谷",                // name
+        "传说中封印着上古妖兽的禁地", // description
+        3,                         // requiredRealm
+        new String[]{"monster1", "monster2"}, // monsterKeys
+        new String[]{"treasure1", "treasure2"}, // rewards
+        0.3                        // dropRate
+    );
+    
+    SecretRealmRegistry.register(realm);
+}
+```
+
+---
+
+## 事务处理
+
+插件操作数据库时应遵循事务规范：
+
+```java
+// 推荐：使用 runTransaction
+DatabaseManager.runTransaction(conn -> {
+    // 在事务内执行多个操作
+    playerService.addGold(conn, playerId, 100);
+    itemService.addItem(conn, playerId, "spirit_stone", 50);
+    return true;
+});
+
+// 简单操作：直接调用服务方法
+playerService.addExperience(playerId, 100);
+```
+
+---
+
+## 日志规范
+
+使用插件日志记录器：
+
+```java
+getLogger().info("正常信息");
+getLogger().warn("警告信息");
+getLogger().error("错误信息", exception);
+getLogger().debug("调试信息");
+```
+
+---
+
+## 插件配置
+
+使用配置文件管理插件参数：
+
+```java
+// 获取配置值
+int maxPlayers = getConfig().getInt("max_players", 100);
+String prefix = getConfig().getString("chat_prefix", "[Custom]");
+boolean enabled = getConfig().getBoolean("feature_enabled", true);
+
+// 设置配置值
+getConfig().set("max_players", 200);
+saveConfig();
+```
+
+配置文件结构 (`config.yml`)：
+
+```yaml
+max_players: 100
+chat_prefix: "[Custom]"
+feature_enabled: true
+rewards:
+  exp: 500
+  gold: 100
+```
+
+---
+
 ## 注意事项
 
 1. **线程安全**：插件代码可能在多个线程中执行，注意线程安全
@@ -476,3 +719,5 @@ public class WelcomePlugin extends Plugin {
 4. **性能考虑**：避免在事件处理中执行耗时操作
 5. **API 兼容性**：使用稳定的 API，避免使用内部类和方法
 6. **配置管理**：使用 `getConfig()` 管理配置，不要硬编码
+7. **事务规范**：多表操作必须使用事务，确保数据一致性
+8. **服务获取**：通过 `getServer()` 获取服务实例，不要手动创建

@@ -92,6 +92,13 @@ export default defineConfig({
             { text: '插件开发', link: '/dev/plugin-development' },
             { text: '部署指南', link: '/dev/deployment' }
           ]
+        },
+        {
+          text: '🔌 内部接口',
+          collapsed: false,
+          items: [
+            { text: '核心服务 API', link: '/dev/internal-api' }
+          ]
         }
       ]
     },
