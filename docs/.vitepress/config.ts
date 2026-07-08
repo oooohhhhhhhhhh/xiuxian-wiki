@@ -9,87 +9,92 @@ export default defineConfig({
   themeConfig: {
     nav: [
       { text: '首页', link: '/' },
-      { text: '游戏系统', link: '/spiritual-root' },
-      { text: '技术文档', link: '/rest-api' },
+      { text: '玩家指南', link: '/player/spiritual-root' },
+      { text: '开发者文档', link: '/dev/rest-api' },
       { text: 'GitHub', link: 'https://github.com/oooohhhhhhhhhh/xiuxian-server' }
     ],
     
-    sidebar: [
-      {
-        text: '🎮 游戏系统',
-        collapsed: false,
-        items: [
-          {
-            text: '核心系统',
-            collapsed: true,
-            items: [
-              { text: '灵根系统', link: '/spiritual-root' },
-              { text: '境界突破', link: '/realm-breakthrough' },
-              { text: '修炼系统', link: '/cultivation' },
-              { text: '农场系统', link: '/farm' },
-              { text: 'Buff系统', link: '/buff-system' }
-            ]
-          },
-          {
-            text: '战斗系统',
-            collapsed: true,
-            items: [
-              { text: 'PVP对战', link: '/pvp-combat' },
-              { text: 'PVE战斗', link: '/pve-combat' }
-            ]
-          },
-          {
-            text: '探索系统',
-            collapsed: true,
-            items: [
-              { text: '游历探索', link: '/exploration' },
-              { text: '秘境探索', link: '/secret-realm' }
-            ]
-          },
-          {
-            text: '社交经济',
-            collapsed: true,
-            items: [
-              { text: '坊市交易', link: '/market' },
-              { text: '宗门系统', link: '/sect' },
-              { text: '好友系统', link: '/friends' }
-            ]
-          },
-          {
-            text: '辅助系统',
-            collapsed: true,
-            items: [
-              { text: '制造系统', link: '/crafting' },
-              { text: '装备系统', link: '/equipment' },
-              { text: '技能系统', link: '/skills' },
-              { text: '称号系统', link: '/titles' }
-            ]
-          }
-        ]
-      },
-      {
-        text: '🛠️ 技术文档',
-        collapsed: false,
-        items: [
-          { text: 'REST API', link: '/rest-api' },
-          { text: 'WebSocket协议', link: '/websocket' },
-          { text: 'QQ机器人指令', link: '/qq-commands' },
-          { text: '权限系统', link: '/permissions' },
-          { text: '插件开发', link: '/plugin-development' },
-          { text: '部署指南', link: '/deployment' }
-        ]
-      },
-      {
-        text: '📊 游戏数据',
-        collapsed: false,
-        items: [
-          { text: '物品列表', link: '/item-list' },
-          { text: '秘境列表', link: '/realm-list' },
-          { text: '游历事件', link: '/exploration-events' },
-          { text: '称号列表', link: '/title-list' }
-        ]
-      }
-    ],
+    sidebar: {
+      '/player/': [
+        {
+          text: '🎮 核心系统',
+          collapsed: false,
+          items: [
+            { text: '灵根系统', link: '/player/spiritual-root' },
+            { text: '境界突破', link: '/player/realm-breakthrough' },
+            { text: '修炼系统', link: '/player/cultivation' },
+            { text: '农场系统', link: '/player/farm' },
+            { text: 'Buff系统', link: '/player/buff-system' }
+          ]
+        },
+        {
+          text: '⚔️ 战斗系统',
+          collapsed: false,
+          items: [
+            { text: 'PVP对战', link: '/player/pvp-combat' },
+            { text: 'PVE战斗', link: '/player/pve-combat' }
+          ]
+        },
+        {
+          text: '🗺️ 探索系统',
+          collapsed: false,
+          items: [
+            { text: '游历探索', link: '/player/exploration' },
+            { text: '秘境探索', link: '/player/secret-realm' }
+          ]
+        },
+        {
+          text: '👥 社交经济',
+          collapsed: false,
+          items: [
+            { text: '坊市交易', link: '/player/market' },
+            { text: '宗门系统', link: '/player/sect' },
+            { text: '好友系统', link: '/player/friends' }
+          ]
+        },
+        {
+          text: '🔧 辅助系统',
+          collapsed: false,
+          items: [
+            { text: '制造系统', link: '/player/crafting' },
+            { text: '装备系统', link: '/player/equipment' },
+            { text: '技能系统', link: '/player/skills' },
+            { text: '称号系统', link: '/player/titles' }
+          ]
+        },
+        {
+          text: '📊 游戏数据',
+          collapsed: false,
+          items: [
+            { text: '物品列表', link: '/player/item-list' },
+            { text: '秘境列表', link: '/player/realm-list' },
+            { text: '游历事件', link: '/player/exploration-events' },
+            { text: '称号列表', link: '/player/title-list' }
+          ]
+        }
+      ],
+      
+      '/dev/': [
+        {
+          text: '📡 API接口',
+          collapsed: false,
+          items: [
+            { text: 'REST API', link: '/dev/rest-api' },
+            { text: 'WebSocket协议', link: '/dev/websocket' },
+            { text: 'QQ机器人指令', link: '/dev/qq-commands' }
+          ]
+        },
+        {
+          text: '🏗️ 开发指南',
+          collapsed: false,
+          items: [
+            { text: '权限系统', link: '/dev/permissions' },
+            { text: '插件开发', link: '/dev/plugin-development' },
+            { text: '部署指南', link: '/dev/deployment' }
+          ]
+        }
+      ]
+    },
     
     search: {
       provider: 'local',
