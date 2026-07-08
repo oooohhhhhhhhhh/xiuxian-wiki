@@ -21,6 +21,7 @@ export default defineConfig({
           collapsed: false,
           items: [
             { text: '灵根系统', link: '/player/spiritual-root' },
+            { text: '境界列表', link: '/player/realm-list' },
             { text: '境界突破', link: '/player/realm-breakthrough' },
             { text: '修炼系统', link: '/player/cultivation' },
             { text: '农场系统', link: '/player/farm' },
@@ -67,7 +68,8 @@ export default defineConfig({
           collapsed: false,
           items: [
             { text: '物品列表', link: '/player/item-list' },
-            { text: '秘境列表', link: '/player/realm-list' },
+            { text: '境界列表', link: '/player/realm-list' },
+            { text: '秘境列表', link: '/player/secret-realm-list' },
             { text: '游历事件', link: '/player/exploration-events' },
             { text: '称号列表', link: '/player/title-list' }
           ]
