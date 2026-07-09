@@ -790,3 +790,68 @@ GET /game/players?limit=100&offset=0
 ```
 GET /game/spiritual_roots
 ```
+
+---
+
+## 新人奖励配置
+
+### 获取新人奖励配置
+
+```
+GET /admin/newbie-reward/config
+```
+
+**权限**: `admin.config.manage`
+
+**响应示例**:
+```json
+{
+  "code": 200,
+  "enabled": true,
+  "goldReward": 1000,
+  "spiritStoneReward": 100,
+  "spiritStoneGrade": 0,
+  "items": [
+    { "itemKey": "healing_pill", "quantity": 10 },
+    { "itemKey": "mana_pill", "quantity": 10 }
+  ]
+}
+```
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| enabled | boolean | 是否启用新人奖励 |
+| goldReward | long | 金币奖励数量 |
+| spiritStoneReward | long | 灵石奖励数量 |
+| spiritStoneGrade | int | 灵石等级（0-下品，1-中品，2-上品，3-极品） |
+| items | array | 物品奖励列表 |
+
+### 更新新人奖励配置
+
+```
+POST /admin/newbie-reward/config
+```
+
+**权限**: `admin.config.manage`
+
+**请求体**:
+```json
+{
+  "enabled": true,
+  "goldReward": 1000,
+  "spiritStoneReward": 100,
+  "spiritStoneGrade": 0,
+  "items": [
+    { "itemKey": "healing_pill", "quantity": 10 },
+    { "itemKey": "mana_pill", "quantity": 10 }
+  ]
+}
+```
+
+**响应示例**:
+```json
+{
+  "code": 200,
+  "message": "配置保存成功"
+}
+```
