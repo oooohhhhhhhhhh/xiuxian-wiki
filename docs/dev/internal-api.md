@@ -822,6 +822,16 @@ Response changePassword(long userId, String oldPassword, String newPassword);
 Response deleteUser(long userId);
 ```
 
+#### 更新邮箱
+
+```java
+void updateUserEmail(long userId, String email);
+String getUserEmail(long userId);
+```
+
+- updateUserEmail：仅当用户邮箱为空或已相同时才更新，避免覆盖已有邮箱
+- getUserEmail：获取用户当前邮箱
+
 ---
 
 ## VerificationCodeService
