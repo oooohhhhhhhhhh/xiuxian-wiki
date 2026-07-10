@@ -780,6 +780,86 @@ OfflineRewardResult processOfflineRewards(long userId);
 
 ---
 
+## UserService
+
+用户管理服务，负责用户注册、登录和密码修改。
+
+### 类路径
+
+```
+com.mtxgdn.service.UserService
+```
+
+### 核心方法
+
+#### 用户注册
+
+```java
+Response register(String username, String rawPassword, String email, String code);
+```
+
+- 支持邮箱验证码注册
+- 当 `verify_code.enabled=true` 时必须提供邮箱和验证码
+- 邮箱唯一性校验：一个邮箱只能注册一个用户
+- 邮箱类型限制：仅允许白名单域名（qq.com, 163.com, 126.com, gmail.com, outlook.com, hotmail.com）
+
+#### 用户登录
+
+```java
+Response login(String username, String rawPassword);
+User authenticate(String username, String rawPassword);
+```
+
+#### 修改密码
+
+```java
+Response changePassword(long userId, String oldPassword, String newPassword);
+```
+
+#### 删除用户
+
+```java
+Response deleteUser(long userId);
+```
+
+---
+
+## VerificationCodeService
+
+验证码服务，负责验证码的生成、存储和验证。
+
+### 类路径
+
+```
+com.mtxgdn.service.VerificationCodeService
+```
+
+### 核心方法
+
+#### 生成并存储验证码
+
+```java
+String generateAndStoreCode(String email);
+```
+
+- 生成6位数字验证码
+- 有效期5分钟
+- 速率限制：默认60秒内同一邮箱只能发送一次
+
+#### 验证验证码
+
+```java
+boolean verifyCode(String email, String code);
+```
+
+#### 检查是否可以发送
+
+```java
+boolean canSendCode(String email);
+```
+
+---
+
 ## 数据访问层
 
 ### DatabaseManager
