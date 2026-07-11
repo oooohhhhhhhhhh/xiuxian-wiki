@@ -58,6 +58,7 @@ features:
 - [装备系统](/player/equipment) - 装备穿戴，强化升级
 - [技能系统](/player/skills) - 攻击技能，辅助技能
 - [称号系统](/player/titles) - 18个预设称号
+- [洞府系统](/player/cave) - 修炼圣地，灵气收集，存储扩展
 
 ---
 
