@@ -72,6 +72,7 @@
 | `admin.blacklist.view` | 查看黑名单 | ADMIN |
 | `admin.blacklist.manage` | 管理黑名单 | ADMIN |
 | `admin.server.manage` | 服务器管理 | SUPER_ADMIN |
+| `admin.debug` | 调试指令 | ADMIN |
 
 ## 权限继承
 
