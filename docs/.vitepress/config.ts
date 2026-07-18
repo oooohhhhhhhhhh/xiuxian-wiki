@@ -24,6 +24,7 @@ export default defineConfig({
             { text: '境界列表', link: '/player/realm-list' },
             { text: '境界突破', link: '/player/realm-breakthrough' },
             { text: '修炼系统', link: '/player/cultivation' },
+            { text: '功法系统', link: '/player/techniques' },
             { text: '农场系统', link: '/player/farm' },
             { text: 'Buff系统', link: '/player/buff-system' }
           ]
@@ -55,14 +56,14 @@ export default defineConfig({
           ]
         },
         {
-          text: '🔧 辅助系统',
-          collapsed: false,
-          items: [
-            { text: '制造系统', link: '/player/crafting' },
-            { text: '装备系统', link: '/player/equipment' },
-            { text: '技能系统', link: '/player/skills' },
-            { text: '称号系统', link: '/player/titles' }
-          ]
+            text: '🔧 辅助系统',
+            collapsed: false,
+            items: [
+              { text: '制造系统', link: '/player/crafting' },
+              { text: '装备系统', link: '/player/equipment' },
+              { text: '技能系统', link: '/player/skills' },
+              { text: '称号系统', link: '/player/titles' }
+            ]
         },
         {
           text: '📊 游戏数据',

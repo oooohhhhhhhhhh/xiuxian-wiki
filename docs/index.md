@@ -25,7 +25,7 @@ features:
     link: /dev/rest-api
 
   - title: 📊 游戏数据
-    details: 60+种物品、8个秘境、13种游历事件、18个称号等完整数据参考
+    details: 100+种物品、31种制造配方、8种技能、11种功法、19个称号等完整数据参考
     icon: 📊
     link: /player/item-list
 ---
@@ -38,6 +38,7 @@ features:
 - [灵根系统](/player/spiritual-root) - 15种灵根，6个等级，独特属性加成
 - [境界突破](/player/realm-breakthrough) - 11大境界，天劫系统
 - [修炼系统](/player/cultivation) - 挂机修炼，心魔机制，离线收益
+- [功法系统](/player/techniques) - 11种功法，被动属性加成
 - [农场系统](/player/farm) - 农田种植，浇水施肥，作物收获
 
 #### 战斗系统
@@ -55,10 +56,11 @@ features:
 - [好友系统](/player/friends) - 好友申请，私聊
 
 #### 辅助系统
-- [制造系统](/player/crafting) - 炼丹炼器
-- [装备系统](/player/equipment) - 装备穿戴，强化升级
-- [技能系统](/player/skills) - 攻击技能，辅助技能
-- [称号系统](/player/titles) - 18个预设称号
+- [制造系统](/player/crafting) - 炼丹炼器，31种配方
+- [装备系统](/player/equipment) - 装备穿戴，强化升级，法宝系统
+- [技能系统](/player/skills) - 8种技能，熟练度系统
+- [功法系统](/player/techniques) - 11种功法，被动属性加成
+- [称号系统](/player/titles) - 19个预设称号，属性加成
 - [洞府系统](/player/cave) - 修炼圣地，灵气收集，存储扩展
 
 ---
