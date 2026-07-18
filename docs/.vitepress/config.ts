@@ -49,6 +49,7 @@ export default defineConfig({
           collapsed: false,
           items: [
             { text: '坊市交易', link: '/player/market' },
+            { text: '经济系统', link: '/player/economy' },
             { text: '宗门系统', link: '/player/sect' },
             { text: '好友系统', link: '/player/friends' }
           ]

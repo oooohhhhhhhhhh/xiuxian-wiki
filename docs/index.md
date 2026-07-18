@@ -50,6 +50,7 @@ features:
 
 #### 社交经济
 - [坊市交易](/player/market) - 玩家间物品交易
+- [经济系统](/player/economy) - 金币、灵石、灵庄存储
 - [宗门系统](/player/sect) - 创建宗门，宗门战
 - [好友系统](/player/friends) - 好友申请，私聊
 
