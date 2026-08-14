@@ -1,271 +1,62 @@
 # 权限系统
 
-修仙世界服务端采用 RBAC（基于角色的访问控制）模型进行权限管理。
+服务端采用 **RBAC + 权限码** 模型：用户 → 角色（权限组）→ 权限码，另支持用户级直接权限分配。权限码由 `PermissionCode` 枚举定义（共 **70 个**：game.* 42 + qq.* 6 + admin.* 22）。
 
-## 权限模型
+## 角色层级
 
-### 用户 - 角色 - 权限关系
+| 角色 | level | 权限 |
+|------|:---:|------|
+| SUPER_ADMIN | 100 | 全部 70 个权限码 |
+| ADMIN | 80 | 除用户 / 权限管理、数据库清除 / 重置外的全部 |
+| MODERATOR | 50 | 玩家权限 + 管理后台查看（status / logs / 黑名单查看 / qq.command.admin） |
+| PLAYER | 10 | 全部 game.* + 除 qq.command.admin 外的 qq.* |
+| GUEST | 0 | 仅 qq.command.basic |
 
-```
-用户 (Player)
-    └── 关联 ──→ 角色 (Role)
-                    └── 包含 ──→ 权限 (Permission)
-```
+> 注：**不存在**「高等级角色自动继承低等级角色权限」的代码逻辑；实际权限 = **用户全部角色的权限并集 + 直接分配权限**（无角色用户回退 PLAYER）。
 
-### 权限等级
+## 权限码
 
-| 等级 | 角色 | 说明 |
-|------|------|------|
-| 0 | guest | 游客，未登录用户 |
-| 1 | player | 普通玩家 |
-| 2 | vip | VIP 玩家 |
-| 3 | moderator | 版主，可管理聊天和部分功能 |
-| 4 | admin | 管理员，拥有全部权限 |
-| 5 | owner | 所有者，最高权限 |
+### game.*（游戏功能，42 个）
 
----
+`game.player.info`、`game.player.create`、`game.cultivate`、`game.explore`、`game.secret_realm`、`game.realm.breakthrough`、`game.item.use`、`game.inventory.view`、`game.item.registry`、`game.realm.config`、`game.skill.learn`、`game.item.add`、`game.pvp.challenge`、`game.technique.learn`、`game.technique.equip`、`game.technique.upgrade`、`game.crafting.recipes`、`game.crafting.craft`、`game.equipment.enhance`、`game.equipment.equip`、`game.market.trade`、`game.chat.world`、`game.chat.private`、`game.rank.view`、`game.friend.manage`、`game.sect.manage`、`game.sect.donate`、`game.sect.warehouse`、`game.cave.manage`、`game.daily`、`game.market.view`、`game.market.list`、`game.market.buy`、`game.market.cancel`、`game.secretrealm.enter`、`game.title.view`、`game.title.equip`、`game.stone.purify`、`game.redeem.code`、`game.team.manage`、`game.team.view`、`game.secret_realm.enter`
 
-## 权限列表
+### qq.*（QQ 指令，6 个）
 
-### 玩家权限
+`qq.bind`、`qq.unbind`、`qq.command.basic`、`qq.command.game`、`qq.command.admin`、`qq.command.trace`
 
-| 权限标识 | 说明 | 默认角色 |
-|----------|------|----------|
-| `game.player.create` | 创建角色 | player |
-| `game.player.info` | 查看自己的信息 | player |
-| `game.player.update` | 修改自己的信息 | player |
-| `game.cultivation.start` | 开始修炼 | player |
-| `game.cultivation.stop` | 停止修炼 | player |
-| `game.breakthrough` | 突破境界 | player |
-| `game.exploration` | 游历探索 | player |
-| `game.secret_realm.enter` | 进入秘境 | player |
-| `game.item.use` | 使用物品 | player |
-| `game.equipment.equip` | 装备物品 | player |
-| `game.equipment.enhance` | 强化装备 | player |
-| `game.skill.learn` | 学习技能 | player |
-| `game.technique.learn` | 学习功法 | player |
-| `game.crafting.craft` | 制造物品 | player |
-| `game.market.list` | 上架物品 | player |
-| `game.market.buy` | 购买物品 | player |
-| `game.friend.add` | 添加好友 | player |
-| `game.friend.remove` | 删除好友 | player |
-| `game.chat.world` | 世界聊天 | player |
-| `game.chat.private` | 私聊 | player |
-| `game.pvp.challenge` | PVP挑战 | player |
-| `game.title.equip` | 装备称号 | player |
-| `game.team.create` | 创建队伍 | player |
-| `game.team.join` | 加入队伍 | player |
-| `game.sect.create` | 创建宗门 | player |
-| `game.sect.join` | 加入宗门 | player |
+### admin.*（管理后台，22 个）
 
-### VIP 权限
+`admin.login`、`admin.status`、`admin.logs.view`、`admin.shutdown`、`admin.users.manage`、`admin.roles.manage`、`admin.database.clear_players`、`admin.database.reset_all`、`admin.database.access`、`admin.redeem.code.manage`、`admin.blacklist.view`、`admin.blacklist.manage`、`admin.onebot.group.config`、`admin.plugins.manage`、`admin.titles.manage`、`admin.debug`、`admin.fix.equipment`、`admin.oauth.manage`、`admin.adapters`、`admin.config.manage`、`admin.economy`、`admin.items.give`
 
-| 权限标识 | 说明 |
-|----------|------|
-| `game.vip.bonus` | 获取VIP加成 |
-| `game.vip.skip_cooldown` | 跳过冷却时间 |
-| `game.vip.double_reward` | 双倍奖励 |
+## 校验流程
 
-### 版主权限
+| 场景 | 校验 |
+|------|------|
+| REST 端点 | `@RequirePermission("game.xxx")` 注解 + PermissionFilter；管理员 JWT 通过视为全权限 |
+| QQ 指令 | 指令构造时声明权限码，执行时 `PermissionService.hasPermission` |
+| WebSocket | 消息处理时按 type 声明权限 |
+| 插件 | `registerPermission()` 注册自定义码（不自动分配） |
 
-| 权限标识 | 说明 |
-|----------|------|
-| `admin.chat.mute` | 禁言玩家 |
-| `admin.chat.kick` | 踢出频道 |
-| `admin.chat.clear` | 清理聊天记录 |
-| `admin.report.handle` | 处理举报 |
-| `admin.player.warn` | 警告玩家 |
+## 动态授权
 
-### 管理员权限
+| 操作 | API |
+|------|-----|
+| 分配 / 移除角色 | `POST/DELETE /api/admin/user/{userId}/role...` |
+| 直接分配权限 | `POST/DELETE /api/admin/user/{userId}/permissions...` |
+| 权限组管理 | `/api/admin/groups...`（创建 / 删除 / 组权限） |
+| 创建管理员 | `POST /api/admin/user/create-admin` |
 
-| 权限标识 | 说明 |
-|----------|------|
-| `admin.player.view` | 查看玩家信息 |
-| `admin.player.ban` | 封禁玩家 |
-| `admin.player.unban` | 解封玩家 |
-| `admin.player.reset` | 重置玩家数据 |
-| `admin.server.shutdown` | 关闭服务器 |
-| `admin.server.reload` | 重新加载配置 |
-| `admin.economy.add` | 添加灵石 |
-| `admin.economy.set` | 修改灵石 |
-| `admin.item.give` | 给予物品 |
-| `admin.player.setattr` | 修改属性 |
-| `admin.player.setrealm` | 修改境界 |
-| `admin.broadcast` | 发送广播 |
-| `admin.online.view` | 查看在线列表 |
-| `admin.qq.bind` | 绑定QQ |
-| `admin.qq.unbind` | 解绑QQ |
-| `admin.sect.disband` | 解散宗门 |
-| `admin.sect.war` | 强制宗门战 |
+保护规则：移除角色时仅当操作者最高角色等级 ≤ 目标角色等级才允许（防止自降 / 移除同级以上角色）。
 
-### 所有者权限
+## 默认角色初始化
 
-| 权限标识 | 说明 |
-|----------|------|
-| `admin.*` | 所有管理员权限 |
-| `system.*` | 所有系统权限 |
-| `plugin.*` | 所有插件权限 |
+启动时自动补写默认角色 → 权限映射（`INSERT OR IGNORE`）：
 
----
+- 新增的 `game.*` / `qq.*` 前缀权限码（**枚举内**）自动授予 PLAYER
+- SUPER_ADMIN 拥有全部权限；ADMIN 排除用户 / 权限管理与数据清除
+- 插件注册的权限码不会自动分配，需管理员手动授权
 
-## API 接口
+## 相关文档
 
-### 获取当前权限
-
-```
-GET /auth/permissions
-```
-
-**响应示例**:
-```json
-{
-  "success": true,
-  "data": {
-    "role": "player",
-    "permissions": [
-      "game.player.create",
-      "game.player.info",
-      "game.cultivation.start"
-    ]
-  }
-}
-```
-
-### 检查权限
-
-```
-GET /auth/check?permission=game.player.create
-```
-
-**响应示例**:
-```json
-{
-  "success": true,
-  "data": {
-    "permission": "game.player.create",
-    "granted": true
-  }
-}
-```
-
-### 管理员接口
-
-#### 获取所有角色
-
-```
-GET /admin/roles
-```
-
-#### 获取角色权限
-
-```
-GET /admin/roles/{roleName}/permissions
-```
-
-#### 修改角色权限
-
-```
-POST /admin/roles/{roleName}/permissions
-```
-
-**请求体**:
-```json
-{
-  "permissions": ["game.player.create", "game.player.info"]
-}
-```
-
-#### 设置玩家角色
-
-```
-POST /admin/players/{playerId}/role
-```
-
-**请求体**:
-```json
-{
-  "role": "vip"
-}
-```
-
----
-
-## 权限检查机制
-
-### 在代码中检查权限
-
-```java
-@PreAuthorize("hasPermission('game.player.create')")
-@PostMapping("/game/player/create")
-public ApiResponse createPlayer() {
-    // 只有拥有 game.player.create 权限的用户才能访问
-    return gameApi.createPlayer();
-}
-```
-
-### 自定义权限注解
-
-```java
-@Target(ElementType.METHOD)
-@Retention(RetentionPolicy.RUNTIME)
-@PreAuthorize("hasRole('admin')")
-public @interface AdminOnly {
-}
-```
-
----
-
-## 权限配置
-
-权限配置文件位于 `config/permissions.yml`：
-
-```yaml
-roles:
-  player:
-    level: 1
-    permissions:
-      - game.player.create
-      - game.player.info
-      - game.cultivation.start
-      - game.cultivation.stop
-      - game.breakthrough
-      - game.exploration
-      - game.item.use
-      - game.equipment.equip
-      - game.market.list
-      - game.market.buy
-      - game.friend.add
-      - game.friend.remove
-      - game.chat.world
-      - game.chat.private
-      - game.pvp.challenge
-  
-  vip:
-    level: 2
-    inherit: player
-    permissions:
-      - game.vip.bonus
-      - game.vip.skip_cooldown
-      - game.vip.double_reward
-  
-  admin:
-    level: 4
-    permissions:
-      - admin.player.view
-      - admin.player.ban
-      - admin.player.unban
-      - admin.server.shutdown
-      - admin.economy.add
-      - admin.item.give
-      - admin.broadcast
-```
-
----
-
-## 注意事项
-
-1. **权限继承**：高等级角色自动继承低等级角色的权限
-2. **权限校验**：所有敏感操作必须进行权限校验
-3. **最小权限原则**：只授予必要的最小权限
-4. **日志记录**：所有权限变更操作都会记录日志
-5. **权限缓存**：权限信息会缓存在 Redis 中，变更后需要刷新缓存
+- 权限码在 API 上的应用 → [REST API](./rest-api)、[QQ 指令](./qq-commands)
+- 插件权限注册 → [插件开发](./plugin-development)

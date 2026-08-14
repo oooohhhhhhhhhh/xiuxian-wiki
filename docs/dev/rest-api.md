@@ -1,857 +1,289 @@
-# REST API 接口文档
+# REST API 参考
 
-修仙世界游戏服务端提供完整的 RESTful API，支持玩家管理、游戏系统操作、社交互动等功能。
+服务端基于 **Jersey 4 + Grizzly**，所有端点挂在 `http://<host>:<port>/api` 下。响应格式统一为：
 
-## 基础信息
-
-- **基础 URL**: `http://<host>:<port>/api`
-- **认证方式**: Bearer Token（在请求头 `Authorization` 中携带）
-- **数据格式**: JSON
-- **响应格式**: `{ "success": boolean, "message": string, "data": any }`
-
-## 状态码
-
-| 状态码 | 说明 |
-|--------|------|
-| 200 | 请求成功 |
-| 400 | 请求参数错误 |
-| 401 | 未认证或Token无效 |
-| 403 | 权限不足 |
-| 404 | 资源不存在 |
-| 500 | 服务器内部错误 |
-
----
-
-## 玩家管理
-
-### 获取玩家信息
-
-```
-GET /game/player
-```
-
-**响应示例**:
 ```json
-{
-  "success": true,
-  "message": "",
-  "data": {
-    "id": 1,
-    "name": "修仙者",
-    "level": 5,
-    "realm": "练气期",
-    "spiritStones": 1000,
-    "hp": 100,
-    "maxHp": 100,
-    "mp": 80,
-    "maxMp": 80,
-    "attack": 50,
-    "defense": 30,
-    "speed": 20,
-    "critRate": 5,
-    "critDamage": 150
-  }
-}
+{ "code": 0, "message": "ok", "data": { ... } }
 ```
 
-### 创建角色
+`code = 0` 表示成功；非 0 为错误码（见文末）。
 
-```
-POST /game/player/create
-```
-
-**请求体**:
-```json
-{
-  "name": "玩家名称"
-}
-```
-
-**响应示例**:
-```json
-{
-  "success": true,
-  "message": "角色创建成功",
-  "data": {
-    "playerId": 1,
-    "spiritualRoot": "金灵根",
-    "realm": "练气一层"
-  }
-}
-```
-
----
-
-## 境界突破
-
-### 突破境界
-
-```
-POST /game/realm/breakthrough
-```
-
-**响应示例**:
-```json
-{
-  "success": true,
-  "message": "突破成功！恭喜进入筑基期",
-  "data": {
-    "oldRealm": "练气期",
-    "newRealm": "筑基期",
-    "bonus": {
-      "hp": 200,
-      "attack": 50
-    }
-  }
-}
-```
-
-### 获取境界配置
-
-```
-GET /game/realm/config
-```
-
----
-
-## 修炼系统
-
-### 开始修炼
-
-```
-POST /game/cultivate/start
-```
-
-### 停止修炼
-
-```
-POST /game/cultivate/stop
-```
-
----
-
-## 战斗系统
-
-### PVP挑战
-
-```
-POST /game/pvp/challenge
-```
-
-**请求体**:
-```json
-{
-  "targetPlayerId": 2
-}
-```
-
----
-
-## 探索系统
-
-### 游历探索
-
-```
-POST /game/exploration
-```
-
-**响应示例**:
-```json
-{
-  "success": true,
-  "message": "游历发现了一座古老的遗迹",
-  "data": {
-    "event": "发现遗迹",
-    "rewards": [
-      { "itemKey": "spirit_stone", "quantity": 500 },
-      { "itemKey": "ancient_scroll", "quantity": 1 }
-    ]
-  }
-}
-```
-
-### 获取秘境区域
-
-```
-GET /game/secret_realm/areas
-```
-
-### 进入秘境
-
-```
-POST /game/secret_realm/enter
-```
-
-**请求体**:
-```json
-{
-  "area": "万妖谷"
-}
-```
-
----
-
-## 物品系统
-
-### 使用物品
-
-```
-POST /game/item/use
-```
-
-**请求体**:
-```json
-{
-  "itemKey": "healing_pill"
-}
-```
-
-### 获取背包
-
-```
-GET /game/inventory
-```
-
-### 获取物品注册表
-
-```
-GET /game/item/registry
-```
-
----
-
-## 装备系统
-
-### 获取装备
-
-```
-GET /game/equipment
-```
-
-### 装备物品
-
-```
-POST /game/equipment/equip
-```
-
-**请求体**:
-```json
-{
-  "itemKey": "sword_001",
-  "slot": "weapon"
-}
-```
-
-**装备槽位**: `weapon`, `armor`, `helmet`, `boots`, `accessory`
-
-### 卸下装备
-
-```
-POST /game/equipment/unequip
-```
-
-**请求体**:
-```json
-{
-  "slot": "weapon"
-}
-```
-
-### 强化装备
-
-```
-POST /game/equipment/enhance
-```
-
-**请求体**:
-```json
-{
-  "slot": "weapon"
-}
-```
-
----
-
-## 技能系统
-
-### 获取技能列表
-
-```
-GET /game/skills
-```
-
-### 获取我的技能
-
-```
-GET /game/skill/my
-```
-
-### 学习技能
-
-```
-POST /game/skill/learn
-```
-
-**请求体**:
-```json
-{
-  "skillId": 1
-}
-```
-
----
-
-## 功法系统
-
-### 获取功法列表
-
-```
-GET /game/techniques
-```
-
-### 获取我的功法
-
-```
-GET /game/technique/my
-```
-
-### 学习功法
-
-```
-POST /game/technique/learn
-```
-
-**请求体**:
-```json
-{
-  "techniqueId": 1
-}
-```
-
-### 装备功法
-
-```
-POST /game/technique/equip
-```
-
-**请求体**:
-```json
-{
-  "techniqueId": 1
-}
-```
-
-### 升级功法
-
-```
-POST /game/technique/upgrade
-```
-
-**请求体**:
-```json
-{
-  "techniqueId": 1
-}
-```
-
----
-
-## 制造系统
-
-### 获取配方
-
-```
-GET /game/crafting/recipes?category=alchemy
-```
-
-**分类**: `alchemy`（炼丹）, `crafting`（炼器）
-
-### 制造物品
-
-```
-POST /game/crafting/craft
-```
-
-**请求体**:
-```json
-{
-  "recipeId": 1
-}
-```
-
----
-
-## 坊市系统
-
-### 获取市场列表
-
-```
-GET /game/market
-```
-
-### 上架物品
-
-```
-POST /game/market/list
-```
-
-**请求体**:
-```json
-{
-  "itemKey": "healing_pill",
-  "quantity": 10,
-  "priceSpiritStones": 500
-}
-```
-
-### 购买物品
-
-```
-POST /game/market/buy
-```
-
-**请求体**:
-```json
-{
-  "listingId": 1
-}
-```
-
-### 取消上架
-
-```
-POST /game/market/cancel
-```
-
-**请求体**:
-```json
-{
-  "listingId": 1
-}
-```
-
-### 获取我的上架
-
-```
-GET /game/market/my_listings
-```
-
----
-
-## 社交系统
-
-### 获取好友列表
-
-```
-GET /game/friend/list
-```
-
-### 获取好友申请
-
-```
-GET /game/friend/pending
-```
-
-### 添加好友
-
-```
-POST /game/friend/add
-```
+## 认证机制
 
-**请求体**:
-```json
-{
-  "targetPlayerId": 2
-}
-```
-
-### 接受好友
-
-```
-POST /game/friend/accept
-```
-
-**请求体**:
-```json
-{
-  "requesterPlayerId": 2
-}
-```
-
-### 删除好友
-
-```
-POST /game/friend/remove
-```
-
-**请求体**:
-```json
-{
-  "friendPlayerId": 2
-}
-```
-
----
-
-## 宗门系统
-
-### 创建宗门
-
-```
-POST /game/sect/create
-```
-
-**请求体**:
-```json
-{
-  "name": "天道宗",
-  "description": "修仙正道第一宗"
-}
-```
-
-### 加入宗门
-
-```
-POST /game/sect/join/{sectId}
-```
-
-### 获取宗门成员
-
-```
-GET /game/sect/members
-```
-
-### 获取宗门申请
-
-```
-GET /game/sect/applications
-```
-
-### 审批申请
-
-```
-POST /game/sect/approve/{appId}
-POST /game/sect/reject/{appId}
-```
-
-### 离开宗门
-
-```
-POST /game/sect/leave
-```
-
-### 踢出成员
-
-```
-POST /game/sect/kick/{targetPlayerId}
-```
-
-### 任命职位
-
-```
-POST /game/sect/appoint
-```
-
-**请求体**:
-```json
-{
-  "targetPlayerId": 2,
-  "role": "elder"
-}
-```
-
-**职位**: `leader`（宗主）, `elder`（长老）, `member`（成员）
-
-### 宗门仓库
-
-```
-GET /game/sect/warehouse
-POST /game/sect/donate
-POST /game/sect/take
-```
-
-### 宗门升级
-
-```
-POST /game/sect/levelup
-```
-
-### 宗门宣战
-
-```
-POST /game/sect/war/{targetSectId}
-```
-
-### 获取宗门排行榜
-
-```
-GET /game/sect/top
-```
-
----
-
-## 称号系统
-
-### 获取所有称号
-
-```
-GET /game/title/all
-```
-
-### 获取我的称号
-
-```
-GET /game/title/my
-```
-
-### 获取当前称号
-
-```
-GET /game/title/active
-```
-
-### 装备称号
-
-```
-POST /game/title/equip
-```
-
-**请求体**:
-```json
-{
-  "titleKey": "first_blood"
-}
-```
-
-### 卸下称号
-
-```
-POST /game/title/unequip
-```
-
----
-
-## 队伍系统
-
-### 创建队伍
-
-```
-POST /game/team/create
-```
-
-### 邀请玩家
-
-```
-POST /game/team/invite
-```
-
-**请求体**:
-```json
-{
-  "targetPlayerId": 2
-}
-```
-
-### 接受邀请
-
-```
-POST /game/team/accept
-```
-
-### 离开队伍
-
-```
-POST /game/team/leave
-```
-
-### 获取队伍信息
-
-```
-GET /game/team/info
-```
-
----
-
-## 聊天系统
-
-### 获取世界聊天
-
-```
-GET /game/chat/world?limit=20
-```
-
-### 获取私聊记录
-
-```
-GET /game/chat/private/{targetPlayerId}?limit=20
-```
-
-### 发送世界聊天
-
-```
-POST /game/chat/world
-```
-
-**请求体**:
-```json
-{
-  "content": "大家好！"
-}
-```
-
-### 发送私聊
-
-```
-POST /game/chat/private
-```
-
-**请求体**:
-```json
-{
-  "targetPlayerId": 2,
-  "content": "私聊内容"
-}
-```
-
----
-
-## 排行榜
-
-### 获取排行榜
-
-```
-GET /game/rank?type=realm&limit=50
-```
-
-**类型**: `realm`（境界）, `spirit_stones`（灵石）, `attack`（攻击）
+| 令牌 | 有效期 | 说明 |
+|------|:---:|------|
+| 用户 JWT | **7 天** | `POST /api/auth/login` / `register` 签发；`Authorization: Bearer <token>` |
+| 管理员 JWT | **12 小时** | `POST /api/admin/login` 签发；用于 `/api/admin/*` |
+| OAuth2 token | 默认 3600 秒 | `POST /api/auth/oauth/token`（client_credentials）签发；仅用于 OAuth 受保护端点 |
 
----
+- 用户 JWT 为**单一令牌**（无 refresh token）；登出 `POST /api/auth/logout` 将令牌加入内存黑名单
+- JWT 密钥：`jwt.secret`（未配置则每次启动随机生成，重启后旧令牌失效）
 
-## 地图系统
-
-### 获取周边地图
-
-```
-GET /game/map
-```
-
-### 移动到指定位置
-
-```
-POST /game/map/travel/{locationId}
-```
-
-### 获取所有地点
-
-```
-GET /game/map/locations
-```
-
----
-
-## 日常系统
-
-### 获取日常信息
-
-```
-GET /game/daily
-```
-
-### 晨间修炼
-
-```
-POST /game/daily/morning_cultivation
-```
-
----
-
-## 其他
-
-### 获取服务器状态
-
-```
-GET /game/status
-```
-
-### 搜索玩家
-
-```
-GET /game/players/search?name=xxx
-```
-
-### 获取所有玩家
-
-```
-GET /game/players?limit=100&offset=0
-```
-
-### 获取灵根信息
-
-```
-GET /game/spiritual_roots
-```
-
----
-
-## 新人奖励配置
-
-### 获取新人奖励配置
-
-```
-GET /admin/newbie-reward/config
-```
-
-**权限**: `admin.config.manage`
-
-**响应示例**:
-```json
-{
-  "code": 200,
-  "enabled": true,
-  "goldReward": 1000,
-  "spiritStoneReward": 100,
-  "spiritStoneGrade": 0,
-  "items": [
-    { "itemKey": "healing_pill", "quantity": 10 },
-    { "itemKey": "mana_pill", "quantity": 10 }
-  ]
-}
-```
+## 认证 API（/api/auth）
 
-| 字段 | 类型 | 说明 |
+| 方法 | 路径 | 说明 |
 |------|------|------|
-| enabled | boolean | 是否启用新人奖励 |
-| goldReward | long | 金币奖励数量 |
-| spiritStoneReward | long | 灵石奖励数量 |
-| spiritStoneGrade | int | 灵石等级（0-下品，1-中品，2-上品，3-极品） |
-| items | array | 物品奖励列表 |
+| POST | `/api/auth/register` | 注册（username, password, email, code 验证码） |
+| POST | `/api/auth/send-code` | 发送邮箱验证码（email） |
+| POST | `/api/auth/login` | 登录（username, password） |
+| POST | `/api/auth/change-password` | 修改密码（oldPassword, newPassword） |
+| POST | `/api/auth/logout` | 登出 |
+| POST | `/api/auth/forgot-password/send-code` | 忘记密码发送验证码 |
+| POST | `/api/auth/forgot-password/reset` | 重置密码 |
+| DELETE | `/api/auth/account` | 注销账号 |
 
-### 更新新人奖励配置
+## OAuth2 API（/api/auth/oauth）
 
-```
-POST /admin/newbie-reward/config
-```
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| POST | `/api/auth/oauth/token` | client_credentials 换 token（`{grant_type, client_id, client_secret, scope}`） |
+| POST | `/api/auth/oauth/introspect` | token 内省（RFC 7662） |
+| GET | `/api/auth/oauth/me` | 受保护资源：查看 token 客户端信息与服务器概况（需 read scope） |
+| GET | `/api/auth/oauth/protected/status` | 受保护资源：服务器状态（需 read scope） |
+| POST | `/api/auth/oauth/protected/echo` | 受保护资源：回显请求体（需 write scope） |
+| GET | `/api/auth/oauth/authorize` | 授权码端点（故意未实现，返回 501） |
 
-**权限**: `admin.config.manage`
+## 游戏 API（/api/game，需用户 JWT）
 
-**请求体**:
-```json
-{
-  "enabled": true,
-  "goldReward": 1000,
-  "spiritStoneReward": 100,
-  "spiritStoneGrade": 0,
-  "items": [
-    { "itemKey": "healing_pill", "quantity": 10 },
-    { "itemKey": "mana_pill", "quantity": 10 }
-  ]
-}
-```
+### 玩家与修炼
 
-**响应示例**:
-```json
-{
-  "code": 200,
-  "message": "配置保存成功"
-}
-```
+| 方法 | 路径 | 权限 | 说明 |
+|------|------|------|------|
+| GET | `/api/game/player` | game.player.info | 玩家信息（含灵根、离线收益） |
+| POST | `/api/game/player/create` | game.player.create | 创建角色（name） |
+| POST | `/api/game/realm/breakthrough` | game.realm.breakthrough | 境界突破（含天劫） |
+| GET | `/api/game/realm/config` | game.realm.config | 境界配置 |
+| POST | `/api/game/cultivate/start` | game.cultivate | 开始修炼 |
+| POST | `/api/game/cultivate/stop` | game.cultivate | 停止修炼（含心魔） |
+| POST | `/api/game/heal` | game.player.info | 灵石疗伤 |
+| POST | `/api/game/player/data/export` | game.player.info | 导出玩家数据文件 |
+| POST | `/api/game/player/data/restore` | game.player.info | 自助还原数据（需 `player-data.self-restore`） |
+
+### 探索
+
+| 方法 | 路径 | 权限 | 说明 |
+|------|------|------|------|
+| POST | `/api/game/exploration` | game.explore | 游历探索 |
+| GET | `/api/game/secret_realm/areas` | game.secret_realm | 秘境列表 |
+| POST | `/api/game/secret_realm/enter` | game.secret_realm | 进入秘境（area） |
+| GET | `/api/game/map` | game.player.info | 当前位置与相邻地点 |
+| POST | `/api/game/map/travel/{locationId}` | game.player.info | 移动 |
+| GET | `/api/game/map/locations` | game.player.info | 全部地点 |
+| GET | `/api/game/season` | - | 季节信息 |
+| GET | `/api/game/buff` | game.player.info | 激活的 Buff |
+
+### 物品与装备
+
+| 方法 | 路径 | 权限 | 说明 |
+|------|------|------|------|
+| GET | `/api/game/inventory` | game.inventory.view | 背包 |
+| GET | `/api/game/item/registry` | game.item.registry | 物品图鉴 |
+| POST | `/api/game/item/use` | game.item.use | 使用物品（itemKey） |
+| POST | `/api/game/item/add` | game.item.add | 添加物品（管理） |
+| GET | `/api/game/equipment` | game.inventory.view | 已装备 |
+| POST | `/api/game/equipment/equip` | game.equipment.equip | 装备（itemKey, slot） |
+| POST | `/api/game/equipment/unequip` | game.equipment.equip | 卸下（slot） |
+| POST | `/api/game/equipment/enhance` | game.equipment.enhance | 强化（slot） |
+
+### 技能 / 功法 / 制造
+
+| 方法 | 路径 | 权限 | 说明 |
+|------|------|------|------|
+| GET | `/api/game/skills` | game.item.registry | 技能列表 |
+| GET | `/api/game/skill/my` | game.inventory.view | 我的技能 |
+| POST | `/api/game/skill/learn` | game.skill.learn | 学习技能（skillId） |
+| GET | `/api/game/techniques` | game.technique.learn | 功法列表 |
+| GET | `/api/game/technique/my` | game.technique.learn | 我的功法 |
+| POST | `/api/game/technique/learn` / `equip` / `unequip` / `upgrade` | game.technique.* | 功法操作 |
+| GET | `/api/game/crafting/recipes` | game.crafting.recipes | 配方（?category=） |
+| POST | `/api/game/crafting/craft` | game.crafting.craft | 制造（recipeId） |
+
+### 战斗与排行
+
+| 方法 | 路径 | 权限 | 说明 |
+|------|------|------|------|
+| POST | `/api/game/pvp/challenge` | game.pvp.challenge | PVP 挑战（立即执行） |
+| GET | `/api/game/rank` | game.rank.view | 排行榜（?type=realm\|power\|wealth） |
+| GET | `/api/game/players` | game.player.info | 玩家列表 |
+| GET | `/api/game/players/search` | - | 搜索玩家 |
+| GET | `/api/game/status` | - | 服务器状态 |
+| GET | `/api/game/spiritual_roots` | game.player.info | 灵根图鉴 |
+
+### 社交
+
+| 方法 | 路径 | 权限 | 说明 |
+|------|------|------|------|
+| GET / POST | `/api/game/chat/world` | game.chat.world | 世界聊天 |
+| GET / POST | `/api/game/chat/private` | game.chat.private | 私聊 |
+| GET | `/api/game/chat/private/{targetPlayerId}` | game.chat.private | 私聊记录 |
+| POST | `/api/game/friend/add` / `accept` / `remove` | game.friend.manage | 好友操作 |
+| GET | `/api/game/friend/list` / `pending` | game.friend.manage | 好友列表 / 申请 |
+| POST | `/api/game/team/create` / `invite` / `accept` / `leave` | game.team.manage | 组队 |
+| GET | `/api/game/team/info` | game.team.view | 队伍信息 |
+| GET | `/api/game/raid/realms` | game.secretrealm.enter | 团队副本列表 |
+| POST | `/api/game/raid/enter` | game.secretrealm.enter | 进入团队副本 |
+
+### 宗门
+
+| 方法 | 路径 | 权限 | 说明 |
+|------|------|------|------|
+| GET | `/api/game/sect/members` | game.sect.manage | 成员列表 |
+| POST | `/api/game/sect/create` | game.sect.manage | 创建 |
+| POST | `/api/game/sect/join/{sectId}` | game.sect.manage | 申请加入 |
+| GET | `/api/game/sect/applications` | game.sect.manage | 待审批申请 |
+| POST | `/api/game/sect/approve/{appId}` / `reject/{appId}` | game.sect.manage | 审批 |
+| POST | `/api/game/sect/leave` / `kick/{targetPlayerId}` / `disband` | game.sect.manage | 退出 / 踢出 / 解散 |
+| POST | `/api/game/sect/appoint` | game.sect.manage | 任命 |
+| GET | `/api/game/sect/warehouse` | game.sect.manage | 仓库 |
+| POST | `/api/game/sect/donate` | game.sect.donate | 捐献 |
+| POST | `/api/game/sect/take` | game.sect.warehouse | 取出 |
+| POST | `/api/game/sect/levelup` | game.sect.manage | 升级 |
+| POST | `/api/game/sect/transfer/{targetPlayerId}` | game.sect.manage | 转让 |
+| POST | `/api/game/sect/war/{targetSectId}` | game.sect.manage | 宣战 |
+| GET | `/api/game/sect/top` | game.sect.manage | 排行 |
+
+### 每日 / 称号 / 农场
+
+| 方法 | 路径 | 权限 | 说明 |
+|------|------|------|------|
+| POST | `/api/game/daily/morning_cultivation` | game.daily | 晨修 |
+| GET | `/api/game/daily` | game.daily | 天象与机缘 |
+| GET | `/api/game/title/all` / `my` / `active` | game.title.view | 称号查询 |
+| POST | `/api/game/title/equip` / `unequip` | game.title.equip | 称号装备 |
+| GET | `/api/game/farm/plots` | game.player.info | 农田状态 |
+| POST | `/api/game/farm/plant` / `water` / `fertilize` / `harvest` / `clear` / `pesticide` | game.player.info | 农田操作 |
+| POST | `/api/game/farm/expand` | game.player.info | 扩建 |
+| POST | `/api/game/farm/water-all` / `fertilize-all` / `harvest-all` | game.player.info | 一键操作 |
+
+### 经济
+
+| 方法 | 路径 | 权限 | 说明 |
+|------|------|------|------|
+| POST | `/api/game/economy/signin` | - | 签到 |
+| POST | `/api/game/economy/recycle` | - | 回收 |
+| POST | `/api/game/economy/purify` | - | 提纯（body: {grade}） |
+| GET | `/api/game/economy/bank/info` | - | 灵庄信息 |
+| POST | `/api/game/economy/bank/deposit` / `withdraw` | - | 存取 |
+| GET | `/api/game/economy/auction/items` / `my` | - | 拍卖列表 |
+| POST | `/api/game/economy/auction/create` / `bid` | - | 拍卖操作 |
+| POST | `/api/game/economy/cultivate-boost` | - | 修炼加速 |
+| POST | `/api/game/redeem` | game.redeem.code | 使用兑换码 |
+| GET | `/api/game/energy/status` / `list` | - | 能量查询 |
+| POST | `/api/game/energy/convert` / `exchange` | - | 能量转化 |
+
+### 管理（Command 动态路由，前缀 /api/game/admin）
+
+| 方法 | 路径 | 权限 | 说明 |
+|------|------|------|------|
+| GET | `/api/game/admin/energy/{playerId}` | admin.status | 玩家能量 |
+| POST | `/api/game/admin/energy/set` / `add` / `remove` | admin.status | 能量管理 |
+| POST | `/api/game/admin/items/give` | admin.items.give | 发放物品 |
+| GET | `/api/game/admin/debug/list` | admin.debug | 指令列表 |
+| POST | `/api/game/admin/debug/test` | admin.debug | 指令试跑 |
+
+## 管理后台 API（/api/admin，需管理员 JWT）
+
+### 系统
+
+| 方法 | 路径 | 权限 | 说明 |
+|------|------|------|------|
+| POST | `/api/admin/login` | - | 管理员 / 玩家双模式登录 |
+| GET | `/api/admin/status` | admin.status | 服务器状态 |
+| GET | `/api/admin/system/info` | admin.status | 系统信息（版本 / JVM / OS） |
+| GET | `/api/admin/logs` | - | 实时日志 |
+| POST | `/api/admin/shutdown` | admin.database.reset_all | 关闭服务器 |
+| POST | `/api/admin/announce` | admin.status | 全服公告（WS 广播） |
+| GET | `/api/admin/whoami` / `me` | - | 当前身份 / 玩家信息 |
+
+### 用户与角色
+
+| 方法 | 路径 | 权限 | 说明 |
+|------|------|------|------|
+| GET | `/api/admin/roles` / `permissions` / `groups` | admin.roles.manage | 角色 / 权限 / 权限组 |
+| POST | `/api/admin/groups` | admin.roles.manage | 创建权限组 |
+| POST/DELETE | `/api/admin/groups/{name}/permissions...` | admin.roles.manage | 组权限管理 |
+| GET | `/api/admin/users` | admin.users.manage | 用户列表 |
+| POST/DELETE | `/api/admin/user/{userId}/role...` | admin.users.manage | 角色分配 |
+| POST | `/api/admin/user/create-admin` | admin.users.manage | 创建管理员 |
+| POST | `/api/admin/user/{userId}/password` | admin.users.manage | 重置密码 |
+| DELETE | `/api/admin/user/{userId}` | admin.users.manage | 删除用户 |
+| GET/POST/DELETE | `/api/admin/user/{userId}/permissions...` | admin.users.manage | 直接权限 |
+
+### 玩家管理
+
+| 方法 | 路径 | 权限 | 说明 |
+|------|------|------|------|
+| GET | `/api/admin/players` | - | 玩家列表 |
+| GET | `/api/admin/players/{id}` | admin.status | 玩家详情 |
+| POST | `/api/admin/players/{id}/give` | admin.users.manage | 发放资源 |
+| POST | `/api/admin/players/{id}/edit` | admin.users.manage | 修改属性 |
+| DELETE | `/api/admin/players/{id}` | admin.users.manage | 删除玩家 |
+| POST | `/api/admin/players/{id}/rename` | admin.users.manage | 改名 |
+| POST | `/api/admin/players/{id}/spiritual-root` | admin.users.manage | 修改灵根 |
+| GET | `/api/admin/spiritual-roots` / `items` / `realms` / `titles` | admin.status | 数据目录 |
+| POST | `/api/admin/players/{id}/title` / `title/add` | admin.users.manage | 称号装备 / 授予 |
+| GET/POST/DELETE | `/api/admin/players/{playerId}/titles...` | admin.titles.manage | 称号管理 |
+| GET | `/api/admin/player-traces` | admin.logs.view | 玩家行为轨迹 |
+
+### 数据库
+
+| 方法 | 路径 | 权限 | 说明 |
+|------|------|------|------|
+| POST | `/api/admin/database/clear_players` | admin.database.clear_players | 清除玩家数据 |
+| POST | `/api/admin/database/reset_all` | admin.database.reset_all | 重置全部数据 |
+| GET | `/api/admin/db/tables` | admin.database.access | 表列表 |
+| GET/POST/DELETE | `/api/admin/db/tables/{tableName}...` | admin.database.access | 行级操作 |
+| GET | `/api/admin/backup` | admin.database.access | 全库备份下载 |
+| POST | `/api/admin/backup/import` | admin.database.reset_all | 备份导入 |
+| GET/POST | `/api/admin/player-data/export...` | admin.database.clear_players | 玩家数据文件导出 |
+| GET | `/api/admin/player-data/list` | admin.database.clear_players | 数据文件列表 |
+
+### 运营
+
+| 方法 | 路径 | 权限 | 说明 |
+|------|------|------|------|
+| GET/POST/DELETE | `/api/admin/redeem-codes...` | admin.redeem.code.manage | 兑换码管理 |
+| GET/POST/DELETE | `/api/admin/blacklist...` | admin.blacklist.manage | 黑名单 |
+| GET/POST/DELETE | `/api/admin/onebot/groups...` | admin.onebot.group.config | 群组配置 |
+| GET/POST | `/api/admin/plugins...` | admin.plugins.manage | 插件管理 |
+| GET | `/api/admin/adapters` | admin.adapters | 适配器状态 |
+| PUT | `/api/admin/adapters` | admin.adapters | 适配器配置 |
+| GET/POST | `/api/admin/oauth/config` | admin.oauth.manage | OAuth2 配置 |
+| GET/POST | `/api/admin/newbie-reward/config` | admin.config.manage | 新手奖励配置 |
+| GET | `/api/admin/stats/messages` / `commands` | admin.status | 统计 |
+
+## 其他端点
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| POST | `/api/mc-command` | Minecraft 桥接指令入口（mcName, mcUuid, command, args） |
+| GET | `/api/test/test` | 连通性测试（返回 hyw） |
+
+## 错误码
+
+| code | 含义 |
+|------|------|
+| 0 | 成功 |
+| 1001-1005 | 认证错误（token 无效 / 未登录 / 用户或邮箱已存在 / 密码错误） |
+| 2001-2002 | 参数错误 |
+| 3001-3002 | 角色不存在 / 已存在 |
+| 4001-4003 | 物品错误 |
+| 5001-5005 | 突破与修炼错误 |
+| 6001-6003 | 消息 / 限流错误 |
+| 6101-6104 | 技能错误 |
+| 7101-7102 | PVP 错误 |
+| 8101-8104 | 秘境错误 |
+| 8201-8202 | 游历错误 |
+| 8301-8302 | 聊天错误 |
+| 8401-8404 | 好友错误 |
+| 9001-9002 | 服务器 / 网络错误 |
+
+## 限流
+
+REST 动作限流：聊天 10 次/60 秒、突破/修炼 5 次/60 秒、游历/秘境 6 次/60 秒、疗伤/好友 15 次/60 秒、其余 30 次/60 秒。超限返回 6003。
+
+## 相关文档
+
+- WebSocket 协议 → [WebSocket 协议](./websocket)
+- 权限码 → [权限系统](./permissions)
+- 认证与 OAuth → [架构总览](./architecture)
