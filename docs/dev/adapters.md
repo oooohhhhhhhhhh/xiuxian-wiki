@@ -44,11 +44,45 @@
 | 项目 | 说明 |
 |------|------|
 | 鉴权 | AppID + ClientSecret 换 access_token（默认 7200 秒，自动刷新） |
-| 网关 | `wss://api.sgroup.qq.com/websocket`（sandbox 前缀 `sandbox.`） |
-| Intents | 默认 `GROUP_AT_MESSAGE_CREATE, C2C_MESSAGE_CREATE` |
+| 接收 | `mode=websocket`（默认）：网关 `wss://api.sgroup.qq.com/websocket`；`mode=webhook`：本地回调服务 |
+| Intents | 默认 `GROUP_AT_MESSAGE_CREATE, C2C_MESSAGE_CREATE`（仅 websocket 模式使用） |
 | 触发 | 群消息必须 **@机器人** 才触发；私聊（C2C）直接触发 |
 | 发送 | 群聊 / 单聊消息接口；被动回复窗口：单聊 60 分钟 / 群聊 5 分钟 |
 | 限制 | 无禁言能力（官方 API 不支持）；group_openid 映射重启后变化 |
+
+### Webhook 模式（mode=webhook）
+
+QQ 开放平台支持将事件以 **Webhook 回调**推送到你自己的服务器（替代 WebSocket 网关），官方要求：
+
+- **回调端口必须为 80 / 443 / 8080 / 8443**（`webhook_port`）
+- 回调路径默认 `/qq/webhook`（`webhook_path`，建议在开放平台配置为 HTTPS 反向代理后的公网地址）
+
+**签名验证**（官方规范：[接口框架 - 签名](https://bot.q.qq.com/wiki/develop/api-v2/dev-prepare/interface-framework/sign.html)）：
+
+| 请求头 | 说明 |
+|--------|------|
+| `X-Tsign-Open-App-Id` | 机器人 AppID（须与 `app_id` 一致） |
+| `X-Tsign-Open-Timestamp` | 时间戳（秒 / 毫秒自适应） |
+| `X-Tsign-Open-Nonce` | 随机串 |
+| `X-Tsign-Open-Signature` | 签名值 |
+
+验签算法：`signature = Base64( HMAC-SHA256(appSecret, timestamp + "\n" + nonce + "\n" + body) )`，与 `X-Tsign-Open-Signature` 做**常量时间比较**；同时校验时间戳新鲜度（`webhook_max_skew_seconds`，默认 300 秒，防重放）。验签通过后按与 WebSocket 相同的 `{t, id, d, s}` 事件格式分发处理。
+
+配置示例（`adapters.json` 中 type=qq 的 config）：
+
+```json
+{
+  "mode": "webhook",
+  "app_id": "xxx",
+  "client_secret": "xxx",
+  "webhook_host": "0.0.0.0",
+  "webhook_port": 8080,
+  "webhook_path": "/qq/webhook",
+  "webhook_max_skew_seconds": 300
+}
+```
+
+> 注：`8080` 通常已被游戏主服务占用，生产环境建议使用 **80 / 443 / 8443**（443 需自行配置 TLS 反向代理；服务端本身为纯 HTTP 监听）。
 
 ## Minecraft 接入
 
