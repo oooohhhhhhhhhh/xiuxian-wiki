@@ -161,7 +161,7 @@
 |------|------|------|------|
 | POST | `/api/game/economy/signin` | - | 签到 |
 | POST | `/api/game/economy/recycle` | - | 回收 |
-| POST | `/api/game/economy/purify` | - | 提纯（body: {grade}） |
+| POST | `/api/game/economy/purify` | game.stone.purify | 提纯灵石（body: {grade}） |
 | GET | `/api/game/economy/bank/info` | - | 灵庄信息 |
 | POST | `/api/game/economy/bank/deposit` / `withdraw` | - | 存取 |
 | GET | `/api/game/economy/auction/items` / `my` | - | 拍卖列表 |

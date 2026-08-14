@@ -25,7 +25,7 @@
 | `/解绑` `/unbind` | 解除 QQ 与游戏账号绑定 | 仅私聊 |
 | `/改密` `/changepassword` `/changepwd` | 修改账号密码 | 仅私聊 |
 | `/注销` `/deleteaccount` | 注销游戏账号（不可逆） | 仅私聊 |
-| `/题库` `/quiz` | 题库管理：`list`（列出）、`show <id>`、`add <1~4> <题干>`、`delete <id>` | 无权限限制 |
+| ~~`/题库` `/quiz`~~ | ~~题库管理：`list`、`show <id>`、`add <1~4> <题干>`、`delete <id>`~~ | **已隐藏**：`quiz.enabled=false`（默认）时指令不注册，不可用 |
 
 ## 我的角色
 

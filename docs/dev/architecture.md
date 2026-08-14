@@ -55,7 +55,7 @@ Main（启动 / 关闭钩子）
 
 ## 数据流示例
 
-**QQ 指令**：OneBot 消息 → OneBotWebSocketServer（离线结算 → 账号流程 → 答题 → 限流 → 私聊限制检查）→ `CommandRegistry.get(cmd)` → `Command.execute`（绑定 → 权限 → 子命令分发）→ 游戏服务 → 回复。
+**QQ 指令**：OneBot 消息 → OneBotWebSocketServer（离线结算 → 账号流程 → 答题（`quiz.enabled=false` 时跳过）→ 限流 → 私聊限制检查）→ `CommandRegistry.get(cmd)` → `Command.execute`（绑定 → 权限 → 子命令分发）→ 游戏服务 → 回复。
 
 **REST**：HTTP → 过滤器链（EntityBuffer → JwtAuth/AdminAuth → Permission）→ Jersey 资源（GameResource 显式端点或 UnifiedRestResource 动态分发）→ 游戏服务 → JSON 响应。
 

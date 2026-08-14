@@ -43,6 +43,9 @@ player-data:
   auto-sync-seconds: 30  # 定期落盘间隔（0=关闭）
   self-restore: false    # 玩家自助还原开关
 
+quiz:
+  enabled: false         # 答题系统开关（默认隐藏/关闭：/题库 指令不注册、自动收集与命中即答均停止）
+
 verify_code:
   enabled: true
   allowed_domains: [qq.com, 163.com, 126.com, gmail.com, outlook.com, hotmail.com]
