@@ -84,6 +84,15 @@ QQ 开放平台支持将事件以 **Webhook 回调**推送到你自己的服务�
 
 > 注：`8080` 通常已被游戏主服务占用，生产环境建议使用 **80 / 443 / 8443**（443 需自行配置 TLS 反向代理；服务端本身为纯 HTTP 监听）。
 
+### 消息交互（按钮互动）
+
+QQ 官方适配器支持官方[「消息交互」按钮](https://bot.q.qq.com/wiki/develop/api-v2/server-inter/message/trans/overview.html)：
+
+- **发送按钮**：`QqOfficialAdapter.sendGroupMsgWithButtons / sendPrivateMsgWithButtons / *WithKeyboard` 可在文本消息上附带一行或多行按钮（`keyboard.content.rows[].buttons[]`，`action.type=2` 回调互动、`permission.type=2` 所有人可点、`data` 携带自定义数据）
+- **点击回调**：接收 `INTERACTION_CREATE` 事件（需在 `intents` 中加上 `INTERACTION`，bit `1<<26`），按钮的 `data`（即 `button_data`）约定为**游戏指令**（如 `签到`），适配器自动补全 `/` 前缀后走正常指令管线执行并回复；同时调用 `POST /interactions/{interaction_id}` 回传，避免按钮"转圈"
+- **使用方式**：QQ 官方渠道发送 `/按钮` 查看演示按钮组（签到 / 状态 / 每日 / 宗门 信息），`/按钮 <指令串>` 发送单个指令按钮；插件开发者可直接调用适配器的 `send*WithButtons` 方法
+- 按钮样式 `style`：0 灰 / 1 蓝 / 2 红 / 3 绿 / 4 橙；另支持跳转链接按钮（`QqButton.url`）
+
 ## Minecraft 接入
 
 ### MOTD 服务器
