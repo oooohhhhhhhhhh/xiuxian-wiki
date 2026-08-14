@@ -92,6 +92,7 @@ QQ 官方适配器支持官方[「消息交互」按钮](https://bot.q.qq.com/wi
 - **点击回调**：接收 `INTERACTION_CREATE` 事件（需在 `intents` 中加上 `INTERACTION`，bit `1<<26`），按钮的 `data`（即 `button_data`）约定为**游戏指令**（如 `签到`），适配器自动补全 `/` 前缀后走正常指令管线执行并回复；同时调用 `POST /interactions/{interaction_id}` 回传，避免按钮"转圈"
 - **使用方式**：QQ 官方渠道发送 `/按钮` 查看演示按钮组（签到 / 状态 / 每日 / 宗门 信息），`/按钮 <指令串>` 发送单个指令按钮；插件开发者可直接调用适配器的 `send*WithButtons` 方法
 - 按钮样式 `style`：0 灰 / 1 蓝 / 2 红 / 3 绿 / 4 橙；另支持跳转链接按钮（`QqButton.url`）
+- ⚠️ **`INTERACTION` Intent 需在 QQ 开放平台申请开通**：默认配置**不包含** `INTERACTION`；未开通就订阅会被网关拒绝（关闭码 **4014 disallowed intents** 并无限重连）。确认平台已开通「消息互动」权限后，再在 `intents` 中手动加入 `INTERACTION`；若仍被拒绝，参照服务端日志中的排查提示移除未授权 intent
 
 ## Minecraft 接入
 
