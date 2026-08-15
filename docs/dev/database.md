@@ -1,6 +1,6 @@
 # 数据库设计
 
-服务端支持 **MySQL / SQLite** 双数据库（`DatabaseManager` + 方言适配），启动时自动建表与迁移。共 **41 张表**。
+服务端支持 **MySQL / SQLite** 双数据库（`DatabaseManager` + 方言适配），启动时自动建表与迁移。共 **42 张表**。
 
 > 注：数据库连接使用 `DriverManager` 直连（**无连接池**）；启动时逐条执行建表语句并运行「尽力迁移」（`ALTER TABLE ... ADD COLUMN IF NOT EXISTS`，失败静默跳过）。
 
@@ -57,7 +57,8 @@
 
 | 表 | 说明 |
 |------|------|
-| `qq_bindings` | QQ 与用户绑定（双向唯一） |
+| `qq_bindings` | OneBot QQ 号与用户绑定（双向唯一） |
+| `qq_official_bindings` | QQ 官方 openid 与用户绑定（双向唯一，独立于 OneBot；启动时自动迁移历史误存 openid） |
 | `mc_bindings` | Minecraft 与用户绑定 |
 | `roles` | 角色（权限组）定义 |
 | `permissions` | 权限码字典 |

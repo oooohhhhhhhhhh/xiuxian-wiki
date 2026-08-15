@@ -50,6 +50,8 @@
 | 发送 | 群聊 / 单聊消息接口；被动回复窗口：单聊 60 分钟 / 群聊 5 分钟 |
 | 限制 | 无禁言能力（官方 API 不支持）；group_openid 映射重启后变化 |
 
+> **身份体系与 OneBot 相互独立**：QQ官方平台下发的是 **openid**（平台内唯一、与真实 QQ 号无关），与 OneBot（真实 QQ 号）不是同一身份。因此 QQ官方适配器使用**独立的绑定表 `qq_official_bindings`**（openid ↔ user_id），与 OneBot 的 `qq_bindings` 互不挤占；同一玩家可同时在两个平台绑定（各自独立）。历史版本误存进 `qq_bindings` 的 openid 会在启动迁移时自动转入新表。
+
 ### Webhook 模式（mode=webhook）
 
 QQ 开放平台支持将事件以 **Webhook 回调**推送到你自己的服务器（替代 WebSocket 网关），官方要求：
