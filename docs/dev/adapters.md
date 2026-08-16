@@ -52,6 +52,15 @@
 
 > **身份体系与 OneBot 相互独立**：QQ官方平台下发的是 **openid**（平台内唯一、与真实 QQ 号无关），与 OneBot（真实 QQ 号）不是同一身份。因此 QQ官方适配器使用**独立的绑定表 `qq_official_bindings`**（openid ↔ user_id），与 OneBot 的 `qq_bindings` 互不挤占；同一玩家可同时在两个平台绑定（各自独立）。历史版本误存进 `qq_bindings` 的 openid 会在启动迁移时自动转入新表。
 
+### 跨平台兼容性
+
+所有 QQ 指令共用同一套命令系统（`CommandRegistry`），跨平台兼容规则：
+
+- **操作者绑定解析**：`CommandContext.resolveBoundBinding()` / `resolveBoundUserId()` 按渠道自动选择绑定表（OneBot → `qq_bindings`，QQ官方 → `qq_official_bindings`，MC → `mc_bindings`）。全部指令（管理、兑换、PVP 等）均使用平台感知解析，同一账号在两个平台绑定后指令行为一致
+- **账号流程**：`/注册` `/绑定` `/解绑` `/改密` `/注销` 通过 `OneBotAccountFlowClient` 接口路由到各渠道实现（QQ官方为适配器内置流程，注册无需邮箱验证）
+- **跨平台通知**：PVP 挑战通知等按目标用户的绑定平台选择发送通道（QQ官方走 openid 私聊、OneBot 走 QQ 号私聊）
+- **已知差异**：消息/指令统计中 QQ官方侧显示 openid（非真实 QQ 号）；QQ官方无黑名单/禁言能力；群号在 QQ官方为内部映射（重启变化），与 OneBot 真实群号不互通
+
 ### Webhook 模式（mode=webhook）
 
 QQ 开放平台支持将事件以 **Webhook 回调**推送到你自己的服务器（替代 WebSocket 网关），官方要求：
