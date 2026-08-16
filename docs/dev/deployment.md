@@ -62,7 +62,7 @@ User=xiuxian
 
 | 项目 | Windows | Linux / macOS |
 |------|---------|---------------|
-| 本地 MySQL 自动拉起 | ✅ 自动搜索 mysqld.exe 并启动 | ❌ 需自行运行 MySQL 服务（代码检测到非 Windows 会跳过并提示） |
+| 本地 MySQL 自动拉起 | ✅ 自动搜索 mysqld.exe 并启动 | ✅ 优先 `systemctl start mysql\|mysqld\|mariadb`（回退 `service` / `brew services`），失败再直接拉起 `mysqld`/`mariadbd`（搜索 /usr/sbin 等常见路径）；找不到或权限不足时给出明确提示 |
 | OneBot 截图模拟模式 | ✅ 可用（需桌面 GUI） | ❌ 无头服务器不可用（java.awt.Robot 初始化失败，仅影响该实验功能） |
 | Minecraft 插件构建 | `build-mc-plugin.bat` / `build-mc-agent.bat` | 需手动用 `jar`/`javac` 构建（脚本仅 Windows）；运行时进程管理为跨平台 ProcessBuilder |
 | 日志文件 | `log/server-*.log`（UTF-8） | 同左（Main 强制 `file.encoding=UTF-8`） |
