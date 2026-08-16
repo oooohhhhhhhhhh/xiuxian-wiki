@@ -30,6 +30,49 @@ java -jar target/main-V1.4.1-beta1.jar
 
 > 默认交互模式按 Enter 关闭；推荐生产环境使用 `--nogui` + 守护进程（systemd / nssm / Windows 计划任务）。
 
+## 跨平台部署（Windows / Linux / macOS）
+
+服务端为纯 Java 23 应用，**一套 fat-jar 三平台通用**（SQLite JDBC 自带各平台原生库）。部署差异如下：
+
+### 运行脚本
+
+| 平台 | 脚本 | 说明 |
+|------|------|------|
+| Linux / macOS | `./start.sh` | 自动定位 `target/main-*.jar`；支持 `JAVA_OPTS` / `XIUXIAN_MEM`（如 `XIUXIAN_MEM=-Xmx256m` 低内存）；`./start.sh /path/to.jar --nogui` |
+| Windows | `start-low-memory.bat` / `java -jar target/main-*.jar --nogui` | |
+
+### 工作目录要求（重要）
+
+- **配置文件**（`application.yml`、`realm_config.json` 等）按 **JAR 所在目录**的 `config/` 解析
+- **数据库文件、`data/`、`log/`、`plugins/`、`config/adapters.json`** 按**当前工作目录（CWD）**解析
+- 因此**必须从 JAR 所在目录启动**（或 systemd 设置 `WorkingDirectory`），否则数据会散落到别处
+- 启动时服务端会打印「部署路径」报告（JAR 目录 / 工作目录 / 各数据路径），目录不一致时输出警告
+
+Linux systemd 单元示例：
+
+```ini
+[Service]
+ExecStart=/opt/xiuxian/start.sh --nogui
+WorkingDirectory=/opt/xiuxian
+Restart=always
+User=xiuxian
+```
+
+### 平台差异
+
+| 项目 | Windows | Linux / macOS |
+|------|---------|---------------|
+| 本地 MySQL 自动拉起 | ✅ 自动搜索 mysqld.exe 并启动 | ❌ 需自行运行 MySQL 服务（代码检测到非 Windows 会跳过并提示） |
+| OneBot 截图模拟模式 | ✅ 可用（需桌面 GUI） | ❌ 无头服务器不可用（java.awt.Robot 初始化失败，仅影响该实验功能） |
+| Minecraft 插件构建 | `build-mc-plugin.bat` / `build-mc-agent.bat` | 需手动用 `jar`/`javac` 构建（脚本仅 Windows）；运行时进程管理为跨平台 ProcessBuilder |
+| 日志文件 | `log/server-*.log`（UTF-8） | 同左（Main 强制 `file.encoding=UTF-8`） |
+
+### 其他
+
+- **JDK 23+**（编译目标 23；Linux 建议用发行版 OpenJDK 23）
+- 端口：REST/WebSocket `8080`、OneBot `6700`、MOTD `25565`、QQ官方 webhook 仅 80/443/8080/8443
+- 反向代理（Nginx/Caddy）为 WebSocket 与 QQ官方 webhook 配置时注意 `Upgrade` 头与路径透传
+
 ## 数据库选择
 
 ### SQLite（推荐单机 / 测试）
