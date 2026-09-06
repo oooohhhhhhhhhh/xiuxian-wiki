@@ -12,7 +12,7 @@ export default defineConfig({
       { text: '快速开始', link: '/guide/quickstart' },
       { text: '玩家指南', link: '/player/spiritual-root' },
       { text: '开发者文档', link: '/dev/architecture' },
-      { text: 'GitHub', link: 'https://github.com/oooohhhhhhhhhh/xiuxian-server' },
+      { text: 'GitHub', link: 'https://github.com/oooohhhhhhhhhh/xiuxian-server-alpha' },
     ],
 
     sidebar: {
@@ -88,7 +88,6 @@ export default defineConfig({
             { text: '宗门系统', link: '/player/sect' },
             { text: '好友与聊天', link: '/player/friends' },
             { text: '每日系统', link: '/player/daily' },
-            { text: '答题系统', link: '/player/quiz' },
           ],
         },
         {
@@ -156,12 +155,12 @@ export default defineConfig({
     },
 
     socialLinks: [
-      { icon: 'github', link: 'https://github.com/oooohhhhhhhhhh/xiuxian-server' },
+      { icon: 'github', link: 'https://github.com/oooohhhhhhhhhh/xiuxian-server-alpha' },
     ],
 
     footer: {
       message: '修仙世界 © 2026',
-      copyright: '文档随服务端 V1.4.1-beta1 同步',
+      copyright: '文档随服务端 V1.4.1-beta2 同步（2026-09-06）',
     },
 
     lastUpdated: {

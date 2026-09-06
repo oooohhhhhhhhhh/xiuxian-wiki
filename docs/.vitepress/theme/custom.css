@@ -43,11 +43,15 @@
 }
 
 /* ========== 表格优化 ========== */
+/* 注意：不能设 overflow:hidden / display:table 强制 100%，否则超宽表格（如灵根全表）
+   会溢出正文容器、压到右侧「页面导航」。需保持 vitepress 默认 display:block + overflow-x:auto */
 .vp-doc table {
-  display: table;
+  display: block;
   width: 100%;
+  border-collapse: collapse;
+  margin: 20px 0;
+  overflow-x: auto;
   border-radius: 8px;
-  overflow: hidden;
 }
 
 .vp-doc th {

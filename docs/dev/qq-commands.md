@@ -1,203 +1,229 @@
-# QQ 机器人指令参考
+# QQ 机器人指令
 
-服务端集成 OneBot 协议 QQ 机器人（私聊与群聊），所有指令以 `/` 开头，**中英文别名混用**（如 `/状态` 与 `/status` 等价）。所有涉及物品的指令均支持**中文名**与 **key** 混用。
+本文面向开发者，按 **V1.4.1-beta2** 源码（`src/main/java/com/mtxgdn`）讲解「修仙世界」QQ 机器人指令体系的框架、声明方式、帮助系统与跨渠道差异。OneBot（真实 QQ 号，服务端模式）与 QQ 官方机器人（openid）共用同一套指令与账号流程，仅绑定身份、触发方式与个别能力不同，详见文末[差异对比](#onebot-与-qq-官方差异)。
 
-> 本文档内容逐条核对自 `onebot/command/**` 源码，与 README 中的指令表存在若干差异，已在本页末尾「与 README 的差异」中说明。
+## 一句话定位
 
-## 框架机制
+服务端把每个玩法能力实现为一个 `extends Command` 的类（共约 **79 个**，位于 `com.mtxgdn.onebot.command` 及其子包），构造时自注册进 `CommandRegistry`。一条指令定义同时产出「QQ 子命令」与「REST 路由」（[指令即路由](./architecture#指令即路由)），所有渠道（OneBot / QQ 官方 / Minecraft）的消息都汇入同一指令管线。
 
-| 要点 | 说明 |
-|------|------|
-| 触发方式 | 消息以 `/` 开头，解析后匹配 `CommandRegistry` 中的指令别名 |
-| 权限 | 指令构造时声明权限码，执行时由 `PermissionService.hasPermission` 校验；无权限回复「权限不足」 |
-| 登录要求 | 默认需要 QQ 已绑定游戏账号；`/帮助`、`/注册`、`/绑定` 除外 |
-| 私聊限制 | 标记「仅私聊」的指令在群聊中触发会被拦截 |
-| 子命令 | 主指令后跟子命令（如 `/宗门 create`），子命令名大小写不敏感 |
-| 分类 | `/帮助` 按分类展示：账号、我的角色、修炼、战斗、背包、探索、坊市、宗门、经济、社交、管理、实用功能 |
+## 触发与解析约定
 
-## 账号与系统
+| 约定 | 说明（源码依据） |
+|------|------------------|
+| 消息前缀 | OneBot 与 QQ 官方默认均以 `/` 开头视为指令（QQ 官方额外兼容 `.`、`！`、`!`，见 [差异](#onebot-与-qq-官方差异)） |
+| 命令名 | 大小写不敏感：注册键与子命令索引统一 `toLowerCase()` |
+| 参数分词 | `Command.execute()` 默认以空白分词（`split("\\s+", 3)`），`parts[0]` 为子命令名 |
+| 主命令与别名 | `names[]` 中第一个是主名，其余为别名，一律可触发（如 `/状态`、`/status`、`/info` 等价） |
+| 物品参数 | 多数指令提示可用**中文名或 key**（`ItemRegistry.resolve` 解析），可用 `/物品列表` 查看映射表 |
+| 帮助 | `/帮助`、`/help`（免登录，按分类输出，见[帮助系统](#帮助系统与分类)） |
 
-| 指令 | 说明 | 限制 |
-|------|------|------|
-| `/帮助` `/help` | 按权限分级列出可用指令 | 免登录 |
-| `/注册 <角色名>` `/register` | 注册修仙角色并绑定 QQ（群聊密码私发） | 免登录 |
-| `/绑定` `/bind` | 将 QQ 绑定到已有游戏账号 | 仅私聊，免登录 |
-| `/解绑` `/unbind` | 解除 QQ 与游戏账号绑定 | 仅私聊 |
-| `/改密` `/changepassword` `/changepwd` | 修改账号密码 | 仅私聊 |
-| `/注销` `/deleteaccount` | 注销游戏账号（不可逆） | 仅私聊 |
-| ~~`/题库` `/quiz`~~ | ~~题库管理：`list`、`show <id>`、`add <1~4> <题干>`、`delete <id>`~~ | **已隐藏**：`quiz.enabled=false`（默认）时指令不注册，不可用 |
+## 指令框架与声明方式
 
-## 我的角色
+### 扫描注册
 
-| 指令 | 说明 |
-|------|------|
-| `/状态` `/信息` `/status` `/info` | 查看完整角色状态（灵根/境界/属性/金币灵石/闭关中/称号），自动结算离线收益 |
-| `/疗伤` `/heal` | 灵石疗伤，恢复伤势 |
-| `/灵根` `/spiritualroot` `/talent` | 查看灵根天赋详情；子命令 `重铸`（金丹期 + 乾坤造化丹 ×1 + 50 万灵石） |
-| `/称号` `/title` `/chenghao` | 称号：`列表`、`装备 <名称>`、`卸下` |
+启动时 `Main.doMain()` 调用 `CommandScanner.scanAndRegister("com.mtxgdn.onebot.command")`：递归扫描该包（含全部子包），凡 **public、非抽象、继承 `Command`、有无参构造** 的类被反射实例化；实例化发生在 `Command` 构造函数里，随即按别名自注册到 `CommandRegistry`（静态 `LinkedHashMap<String, Command>`，键为小写别名）。因此「新增一个指令类」即可自动生效，无需任何手工登记。
 
-## 修炼与每日
+> 扫描器仅接受 public + 无参构造；QQ 官方与 MC 渠道不单独扫描，直接复用这套注册表。
 
-| 指令 | 说明 |
-|------|------|
-| `/打坐` `/闭关` `/meditate` `/cultivate` | 开始打坐修炼，显示每分钟灵力、季节倍率、地点灵气倍率 |
-| `/停止` `/stop` | 结束打坐并结算灵力（含心魔判定） |
-| `/突破` `/breakthrough` | 境界突破（含天劫） |
-| `/天象` `/daily` | 查看今日天象与机缘任务 |
-| `/晨修` `/morning` | 每日晨修（5:00~11:00） |
+### 指令类骨架
 
-## 战斗
+声明集中在 `super(...)` 构造调用中（`Command.java` 提供 4 档便捷重载）：
 
-| 指令 | 说明 |
-|------|------|
-| `/挑战` `/pvp` | 切磋挑战其他修士；子命令 `接受` / `拒绝`（30 秒超时，私聊通知被挑战者） |
-| `/决斗` `/切磋` `/fight` `/战斗` `/讨伐` `/boss` | 多功能战斗入口：`战斗`（打野怪）、`讨伐`（千年妖王）、`boss <玩家名…>`（组队 Boss 战）、PVP 接受/拒绝 |
-| `/战斗策略` `/战术` `/tactic` | 设置战斗策略：猛攻 / 均衡 / 防守（影响 PvP/PVE 的 AI 行为） |
-| `/技能` `/skills` | 查看技能列表；子命令 `升级 <技能ID>`（消耗熟练度 100×(等级+1)） |
-| `/学习` `/learn` | 学习技能（支持 ID / 中文名） |
+```java
+protected Command(String[] names, String description, String usage,
+                  String category, String permission, boolean privateOnly, boolean requiresLogin)
+// 便捷重载依次省略：requiresLogin（默认 true）→ privateOnly（默认 false）→ permission（默认 null）
+```
 
-## 背包与装备
+一个真实示例（`onebot/command/player/StatusCommand.java`）：
 
-| 指令 | 说明 |
-|------|------|
-| `/背包` `/backpack` | 查看背包（容量、物品名 × 数量） |
-| `/使用 <物品>` `/itemuse` | 使用物品（支持中文名 / key） |
-| `/装备 <物品> <部位>` `/equip` | 穿戴装备（weapon / armor / accessory） |
-| `/卸下 <部位>` `/unequip` | 卸下装备 |
-| `/已装备` `/equipped` | 查看已装备物品 |
-| `/强化 <栏位>` `/enhance` | 强化已装备（消耗金币 + 强化石，+5 以上可能降级/碎装） |
-| `/增益` `/buff` | 查看当前激活的 Buff |
-| `/物品列表` `/itemmap` | 物品中文名与 key 映射表 |
+```java
+public class StatusCommand extends Command {
+    public StatusCommand() {
+        super(new String[]{"状态", "信息", "status", "info"},   // 主命令 + 别名
+                "查看角色状态（含离线收益）",                    // 描述（/帮助 展示）
+                "/状态",                                        // usage
+                "我的角色",                                     // 分类
+                "game.player.info");                           // 权限码
+        setModule("player");                                   // 所属内置模块（可空）
+    }
 
-## 功法
+    @Override
+    public void execute(CommandContext ctx) { /* 处理器实现 */ }
+}
+```
 
-| 指令 | 说明 |
-|------|------|
-| `/功法` `/technique` `/tj` | 功法系统：`列表`、`我的`、`学习 <ID>`、`装备 <ID>`、`卸下 <ID>`、`升级 <ID>` |
+构造参数语义表：
 
-## 探索与地图
+| 参数 | 含义 | 例子（来自源码） |
+|------|------|------------------|
+| `names` | 主名 + 别名数组，小写化后进注册表 | `{"打坐","闭关","meditate","cultivate"}`（CultivateCommand） |
+| `description` | 帮助列表中的一行描述 | 「每日晨修，获取天象加成」 |
+| `usage` | 无参数 / 未知子命令时的用法提示 | `/宗门 <子命令> [参数]` |
+| `category` | 帮助分类名（见[分类排序](#帮助系统与分类)） | 「宗门」「战斗」「经济」… |
+| `permission` | 权限码，`null` 表示玩家通用 | `game.sect.manage`、`admin.status` |
+| `privateOnly` | `true` 时群聊中触发被拦截（提示改用私聊） | `/解绑`、`/发放`、`/cleardb_players` |
+| `requiresLogin` | `false` 时未绑定也能使用（`/帮助` `/注册` `/绑定`） | `/注册`、`/绑定` |
 
-| 指令 | 说明 |
-|------|------|
-| `/游历` `/explore` | 游历探索（冷却 60 秒，灵根可缩减）；子命令 `状态` 查看冷却 |
-| `/秘境` `/secret` | 查看可用秘境列表 |
-| `/进入秘境 <名称>` `/secret_enter` | 进入秘境 |
-| `/地图` `/map` | 查看当前位置与相邻地点；子命令 `前往 <地名>`、`列表 [区域]`（15 个地点） |
+### 内置模块门控 setModule()
 
-## 洞府与阵法
+```java
+protected void setModule(String module)   // 模块名对应 built_in_plugins.<module>，如 "sect"/"farm"
+public boolean isModuleEnabled()          // 无模块或模块启用时为 true
+```
 
-| 指令 | 说明 |
-|------|------|
-| `/洞府` `/cave` | 洞府：`开辟 [名称]`（筑基期 + 300 灵石）、`信息`、`收集`（每 5 分钟一次）、`冥想`、`升级`、`帮助` |
-| `/阵法` `/formation` | 阵法：`布置 <阵法名> [等级]`、`信息`、`升级`、`拆除`、`列表`、`帮助` |
+- 在 `super(...)` 之后调用 `setModule("sect")` 等，把指令归属到某个内置玩法模块（SectCommand、FarmCommand、ExploreCommand 等均如此声明）。
+- 模块停用时：`CommandRegistry.get(name)` 返回 `null`（**所有入口统一失效**，含 OneBot / QQ / MC 与 REST），`getRaw(name)` 仍可取到实体以便给出「该玩法已停用」提示。
+- `Command.shouldShowInHelp(userId)` 也先检查模块开关，停用模块的指令不进 `/帮助`。
 
-## 制造
+### 子命令与双端（OneBot + REST）注册
 
-| 指令 | 说明 |
-|------|------|
-| `/合成` `/炼制` `/craft` | 制造系统：`列表`、`配方 <分类>`（PILL/EQUIPMENT/CONSUMABLE/SEED）、`制造 <配方ID>`、`熟练度` |
+所有注册统一走 `addRoute(RouteDefinition)`（`Command` 内 `routes` 列表 + OneBot 侧 `subIndex` 小写索引），三种形态（`RouteDefinition.java`）：
 
-## 坊市
+| 工厂方法 | 语义 |
+|----------|------|
+| `RouteDefinition.onebotOnly(sub, handler)` | 仅 OneBot 子命令，不出现在 REST |
+| `RouteDefinition.get(path, handler)` / `.post(path, permission?, handler)` | 仅 HTTP 路由（`httpOnlyGet/httpOnlyPost` 为同义旧名）；支持 `{param}` 路径参数 |
+| `registerSub(name|names[], handler)` | 便捷方法 = `onebotOnly`，可为多个别名注册同一处理器 |
 
-| 指令 | 说明 |
-|------|------|
-| `/坊市` `/market` | 查看坊市挂单（最多 15 条） |
-| `/上架 <物品key> <数量> <灵石>` `/list` | 上架物品（5% 手续费，灵根可减半） |
-| `/购买 <挂单ID>` `/buy` | 购买挂单 |
-| `/撤单 <挂单ID>` `/cancel` | 撤回挂单 |
-| `/我的挂单` `/mylistings` | 查看我的挂单 |
+- `Command.addRoute()` 统一收口：非 httpOnly 且带子命令名的路由写入 `subIndex`（小写），HTTP 侧经 `getRestEndpoints()` 暴露给 `UnifiedRestResource` 动态分发（URL 前缀 `/api/game/`，见 [REST API](./rest-api)）。
+- **双端注册**示例（`SectCommand`）：OneBot 侧 `registerSub("create"/"创建", …)` 等二十余项；HTTP 侧 `addRoute(RouteDefinition.get("sect/info/{sectId}", "game.sect.manage", …))`。
+- 同一份 `routes` 同时服务两端：`getSubCommandNames()` 供 `/帮助` 紧凑展示子命令。
 
-## 宗门
+### 默认 execute() 管线
 
-| 指令 | 说明 |
-|------|------|
-| `/宗门` `/sect` | 宗门主指令（无参数显示概览）；子命令：`create 创建 <名称> [描述]`（金丹期 + 500 灵石）、`join 加入 <宗门名>`、`list 列表`、`info 信息 [名称]`、`members 成员`、`apply 申请`、`approve 通过 <玩家名>`、`reject 拒绝`、`leave 退出`、`kick 踢出 <玩家名>`、`appoint 任命 <玩家名> <职位>`、`donate 捐献 <key> <数量>`、`warehouse 仓库`、`take 取出 <key> <数量>`、`disband 解散`、`top 排行`、`pending 申请列表`、`levelup 升级`、`transfer 转让 <玩家名>`、`war 宣战 <宗门名>`、`help 帮助` |
+未覆写 `execute()` 的指令执行顺序（`Command.java`）：
 
-## 经济
+```
+requireBinding()        绑定检查：平台感知解析（OneBot→qq_bindings / QQ官方→qq_official_bindings / MC→mc_bindings）
+                        未绑定回复「请先注册或绑定账号…」并中止
+permission 非空 → PermissionService.hasPermission(userId, permission)  失败回复「权限不足」
+requirePlayer(userId)   无角色则提示 /register 创建角色
+参数为空                → onDefault(ctx, p)（默认打印 usage）
+参数分词，查 subIndex   命中 → 子命令处理器 handle(ctx, p, parts)
+未命中                  → onUnknown(ctx, p, sub, parts)（默认打印未知子命令 + usage）
+```
 
-| 指令 | 说明 |
-|------|------|
-| `/签到` `/signin` | 每日签到领灵石（连续天数 + 周进度条） |
-| `/回收 <物品名> [数量]` `/recycle` | 回收物品为灵石（回收价 = 原价 30%） |
-| `/灵庄` `/bank` | 灵石存取：`存入 <活期\|7天\|30天\|90天> <数量>`、`取出 <编号>`、`利率`（活期日利 0.5%，定期 3% / 10% / 25%，起存 100 灵石） |
-| `/拍卖` `/auction` | 竞拍行：`出售 <物品名> <数量> <起价> [小时]`、`出价 <编号> <价格>`、`我的` |
-| `/修炼加速 <灵石数量>` `/boost` | 燃烧灵石加速修炼（100 灵石 = 1 小时 ×1.5 倍） |
-| `/灵石兑换 [数量] <从> <到>` `/石兑` | 高→低兑换灵石（1:1000） |
-| `/提纯 <下品\|中品\|上品>` `/purify` `/灵石提纯` | 提纯灵石（需境界 + 洞府灵气，有概率失败） |
+指令内如需自行二次鉴权可用 `CommandContext.requirePermission(code)` / `checkPermission(code)`（区别见源码注释与 [权限体系](./permissions)）。
 
-## 能量转化
+### 同名别名覆盖（注意）
 
-| 指令 | 说明 |
-|------|------|
-| `/转化` `/exchange` `/convert` | 物品 ↔ 能量互转；子命令 `兑换 <物品> [数量]`（能量→物品）、`列表`（可转化物品按价值排序）；受实验开关 `energy_exchange` 控制 |
+`CommandRegistry.register` 按小写别名直接 `put`，因此**同名别名会被后实例化的类覆盖**；而扫描顺序取决于文件系统遍历顺序（不保证稳定）。源码中实际存在多组重复别名，最终归属不保证：
 
-## 农场
+| 别名 | 冲突双方 |
+|------|----------|
+| `status` | 玩家 `StatusCommand`（我的角色）↔ 管理 `StatusCommand`（`服务器状态/serverstatus`） |
+| `pvp` | 战斗 `PvpCommand`（挑战）↔ 战斗/决斗 `PvpCommand`（`pvp` 子包） |
+| `灵根` | `SpiritualRootCommand`（玩家）↔ `SetRootCommand`（管理：修改灵根） |
+| `发放`/`give` | 管理 `GiveCommand` ↔ 物品 `ItemGiveCommand` |
+| `物品列表` | 背包 `ItemMapCommand` ↔ 管理 `ItemsQueryCommand` |
 
-| 指令 | 说明 |
-|------|------|
-| `/种田` `/farm` | 种田主指令（默认查看农田与季节）；子命令：`查看`、`种植 <地块> <种子>`、`浇水 <地块>`、`施肥 <地块> [low/mid/high]`、`收获 <地块>`、`清理 <地块>`、`扩建`、`种子`、`一键浇水`、`一键施肥`、`一键收获`、`杀虫 <地块>` |
+## 帮助系统与分类
 
-## 社交与排行
+`/帮助`（`HelpCommand`）按以下规则动态生成，不写死清单：
 
-| 指令 | 说明 |
-|------|------|
-| `/排行` `/排行榜` `/rank` | 排行榜：power（战力）/ wealth（财富）/ 默认境界榜，各取前 10 |
-| `/查人 <名称>` `/查找` `/search` | 按名称模糊搜索玩家（最多 10 条） |
-| `/私聊 <玩家名> <内容>` `/msg` | 发送私聊消息 |
+1. `ctx.resolveBoundUserId()` 平台感知地解析操作者（未绑定返回 `null`）。
+2. 遍历 `CommandRegistry.getAllUnique()`，仅保留 `shouldShowInHelp(userId)` 为 true 的指令：
+   - 所属内置模块已停用 → 不展示；
+   - `userId == null` → 仅 `requiresLogin == false` 的指令（即未绑定时帮助里只有 `/帮助 /注册 /绑定` 等）；
+   - 已绑定时：无权限码 → 展示；有权权限码 → `PermissionService.hasPermission` 判定，无权限不展示。
+3. 按分类分组，类别顺序取自 `Command.CATEGORY_ORDER`（`Command.java`），数字越小越靠前，未列出的分类排最后——**新增分类只需在此 map 加一行，无需改 HelpCommand**：
 
-> 注意：`/好友` 指令在 QQ 端**未实现**（`FriendCommand.java` 为空文件），好友功能仅 REST / WebSocket 可用。
+| 顺序 | 分类 | 顺序 | 分类 |
+|------|------|------|------|
+| 1 | 账号 | 7 | 坊市 |
+| 2 | 我的角色 | 8 | 宗门 |
+| 3 | 修炼 | 9 | 经济 |
+| 4 | 战斗 | 10 | 社交 |
+| 5 | 背包 | 11 | 管理 |
+| 6 | 探索 | 12 | 实用功能 |
 
-## 兑换码
+4. 每行以「主命令 `[子命令1|子命令2|…]` + 描述」紧凑排版（子命令串超 24 字符截断），落款附项目地址。
 
-| 指令 | 说明 |
-|------|------|
-| `/兑换 <兑换码>` `/redeem` | 使用兑换码领取奖励（不显示在 `/帮助` 中） |
+## 权限与登录要求
 
-## 消息交互（按钮，仅 QQ 官方适配器）
+- **登录（绑定）要求**：`requiresLogin` 默认 `true`——大多数指令先要求 QQ/MC 身份已绑定游戏账号；例外是 `/帮助`、`/注册`、`/绑定`（`requiresLogin=false`）。
+- **权限码**：指令构造时声明；执行前由 `Command.execute()`（或渠道适配器分发前置）经 `PermissionService` 校验，失败回复「权限不足，你无权使用此功能。」。常见权限码示例（均出自源码指令声明）：
 
-> `/按钮` 指令**仅在 QQ 官方适配器运行时**注册显示（`/帮助` 中其他渠道不可见，非 QQ 官方渠道调用会提示不可用）。
+| 权限码 | 指令（示例） |
+|--------|--------------|
+| `game.player.info` | `/状态`、`/疗伤`、`/晨修`、`/天象`、`/坊市`/`/上架`/`/购买`（坊市全套）、`/解绑`/`/改密`/`/注销` |
+| `game.inventory.view` | `/背包`、`/已装备` |
+| `game.item.use` | `/使用` |
+| `game.equipment.equip` | `/装备`、`/卸下` |
+| `game.skill.learn` | `/学习` |
+| `game.pvp.challenge` | `/挑战` |
+| `game.sect.manage` | `/宗门` |
+| `game.friend.manage` | `/好友` |
+| `game.redeem.code` | `/兑换`（REST 路由权限） |
+| `admin.status` | 管理指令（`/服务器状态`、`/发放`、`/能量管理` 等） |
+| `admin.economy` | `/经济` |
+| `admin.fix.equipment` | `/修复装备` |
+| `admin.debug` | `/debug` |
+| `admin.database.clear_players` / `admin.database.reset_all` | `/cleardb_players`、`/cleardb_all` |
 
-| 指令 | 说明 |
-|------|------|
-| `/按钮` `/button` `/互动按钮` | 发送演示按钮组（签到 / 状态 / 每日 / 宗门 信息），点击即执行对应指令 |
-| `/按钮 <指令串>` | 发送单个指令按钮（如 `/按钮 签到`），点击执行 `/签到` |
+- **仅私聊（privateOnly）**：`/解绑`、`/改密`、`/注销`、`/发放`（管理版）与清库类指令声明 `privateOnly=true`，群聊中触发会被渠道拦截（QQ 官方回复「请私聊机器人使用此指令，保护您的账户安全。」）。
+- **限流**：每发送者每 60 秒限 10 条指令（QQ 官方 key `qq:<openid>`；OneBot 服务端模式同样 10 次/60 秒/QQ 号），超限回复「操作太频繁，请稍后再试」。
+- **账号多步向导**：`/注册`（角色名→密码→可选邮箱验证）、`/绑定`、`/改密`、`/注销` 走 `OneBotAccountFlow` / `OneBotAccountFlowClient` 挂起态会话，下一步内容在向导内逐步引导；`/cancel` 是保留取消词。`/注册` 群聊可用但密码在私聊步骤输入（敏感信息不进群）；QQ 官方渠道注册**跳过邮箱验证码**（以 openid 身份进入，见源码 `QqOfficialAdapter`）。
 
-按钮数据即游戏指令：点击触发 `INTERACTION_CREATE` 事件 → 适配器补全 `/` 前缀后按正常指令管线执行并回复（需在 QQ 适配器 `intents` 中启用 `INTERACTION`）。
+## OneBot 与 QQ 官方差异
 
-## 管理指令（管理员，多数仅私聊）
+| 维度 | OneBot 服务端模式（`qq_bindings`） | QQ 官方机器人（`qq_official_bindings`） |
+|------|-----------------------------------|------------------------------------------|
+| 身份键 | 真实 QQ 号 | openid（平台唯一、与 QQ 号无关） |
+| 绑定表 | `qq_bindings`（`QqBindingService`） | `qq_official_bindings`（`QqOfficialBindingService`，openid↔user_id） |
+| 触发 | 群聊 / 私聊直接发 `/指令` | 群聊必须 **@机器人**（`GROUP_AT_MESSAGE_CREATE`），`remove_at=true` 时自动剥离 `<@!…>` 占位符；C2C 单聊直接触发 |
+| 前缀 | `/` | 默认 `/`，另兼容 `.`、`！`、`!`；可配 `command_prefix`（如 `xiuxian`，此时消息须以该前缀开头） |
+| 绑定解析 | `CommandContext.resolveBoundUserId()` 平台感知：OneBot 查 `qq_bindings` → 回退 `mc_bindings` | 传入平台查找器查 `qq_official_bindings` → 回退 MC 绑定 |
+| 按钮 | 不支持 | 支持消息交互按钮（见下） |
+| 群消息拦截 | 群聊中触发 `privateOnly` 指令被渠道拦截 | 拦截回复「请私聊机器人使用此指令，保护您的账户安全。」 |
+| 限流 | 10 次 / 60 秒 / QQ 号 | 10 次 / 60 秒 / openid（`qq:` key） |
+| 消息统计 | 记录 QQ 号 | 记录 openid（非真实 QQ 号） |
 
-| 指令 | 说明 |
-|------|------|
-| `/服务器状态` `/serverstatus` | 服务器运行状态（时长/在线/内存） |
-| `/日志 [条数]` `/logs` | 查看最近日志（默认 10 条，上限 50） |
-| `/玩家列表 [页数] [每页]` `/players` | 玩家列表 / 按名称搜索 |
-| `/玩家详情 <ID或名>` `/playerinfo` | 玩家完整详情 |
-| `/编辑玩家 <ID> <属性>=<值>...` `/editplayer` | 修改玩家属性（hp/mp/attack/defense/speed/spirit/level/gold/experience/realm 等） |
-| `/修改灵根 <ID> <灵根名>` `/setroot` | 修改玩家灵根（按枚举名，如 TAIYI_GOLDEN） |
-| `/发放 <ID> 金币=.. 灵力=.. 灵石=.. [key]=..` `/give` | 发放金币/灵力/灵石/物品 |
-| `/物品列表 [页数]` `/items` | 查看全部注册物品 |
-| `/用户列表` `/users` | 查看所有用户与角色 |
-| `/经济` `/economy` | 全服经济面板（灵石/金币总量、人均、24h 交易量） |
-| `/轨迹 [玩家名/QQ/UID]` `/trace` | 查看玩家操作轨迹（行为日志） |
-| `/能量管理 <ID> <查看\|设置\|增加\|减少> [数值]` `/energyadmin` | 管理玩家能量（需开启能量系统） |
-| `/debug` `/调试` | 调试：`list` 列出全部指令、`test <指令名>` 事务回滚试跑 |
-| `/修复装备` `/fixequip` | 修复装备数据一致性 |
-| `/清除玩家数据` `/cleardb_players` | 清除所有玩家数据 |
-| `/重置全部数据` `/cleardb_all` | 重置全部数据并重新初始化 |
-| `/关闭服务端` `/shutdown` | 关闭服务器（SUPER_ADMIN） |
-| `/重启` `/restart` | 重启服务器（SUPER_ADMIN） |
+### 按钮消息（仅 QQ 官方）
 
-## 与 README 的差异
+`/按钮`（`QqButtonCommand`，分类「实用功能」，权限 `game.player.info`）只在 **QQ 官方适配器运行中** 才于 `/帮助` 出现（`AdapterManager.getFirstQqOfficialAdapter() != null` 才 `shouldShowInHelp`）；非 QQ 官方渠道调用回复「消息交互按钮仅支持 QQ 官方机器人」。
 
-以下为源码现状与 README 指令表不一致之处：
+- `/按钮` —— 发送演示按钮组：✅签到、📊状态、🌤每日、🏯宗门 信息（两行各两个，样式 3/1/4/2）。
+- `/按钮 <指令串>` —— 发送单个「点击执行 /指令」按钮。
+- 按钮 `data`（`button_data`）即游戏指令：点击后服务端收 `INTERACTION_CREATE`（需在适配器 `intents` 中加入 `INTERACTION`，bit `1<<26`，须先在 QQ 开放平台申请开通；未授权会被网关以 **4014 disallowed intents** 拒绝并无限重连），适配器补全 `/` 前缀后走正常指令管线执行并回复，同时回传 `POST /interactions/{interaction_id}` 让按钮结束“转圈”。
+- 按钮对象 `QqButton`：`id`、`label`、`style`（0 灰/1 蓝/2 红/3 绿/4 橙）、`data`、`enter`（点击是否顺发一条文本）、`url`（跳转链接按钮）；构造器见 [适配器与外部接入](./adapters#消息交互按钮)。
 
-- **不存在的指令**：`/好友`（空文件未注册）、`/ban`、`/unban`、`/blacklist`（黑名单仅 REST/后台）、`/qd`（签到仅 `/签到`）、`/存钱` `/取钱`（灵庄子命令为 `存入`/`取出`）、`/发布拍卖`（拍卖子命令为 `出售`）、`/cultivate_boost`（仅 `/修炼加速`）
-- **权限码差异**：源码中签到、回收、灵庄、拍卖、修炼加速、合成、功法、排行、私聊、称号等指令**未声明权限码**（玩家通用），README 中标注的 `game.economy.*`、`game.crafting.*`、`game.technique.*`、`game.rank.view`、`game.chat.private`、`game.title.*` 等仅存在于 REST 端点
-- **别名冲突**：`pvp`、`状态`、`物品列表`、`发放/give`、`灵根`、`status` 存在多指令同名注册，后注册者覆盖先注册者（可能使部分别名失效）
-- **REST 双实现**：坊市、宗门、功法、农场、称号、好友等端点在 `rest/GameResource.java`（JAX-RS）与命令类 `addRoute`（`UnifiedRestResource` 分发，前缀 `/api/game/`）两套体系并存
+## 常用指令示例（按分类节选）
+
+下表仅为**分类示例**：指令与分类、权限均来自源码声明；别名与子命令从每类挑一两个展示。完整、动态的最新清单始终以 **`/帮助`** 输出为准（管理员另可用 `/debug` 枚举全部指令，其 REST 路由为 `admin/debug/list`）。
+
+| 分类 | 主指令（别名） | 用途与子命令示例 |
+|------|----------------|------------------|
+| 账号 | `/注册 register` | 注册角色并绑定（免登录、可群聊发起） |
+| 账号 | `/绑定 bind` | 绑定已有账号（免登录、仅私聊） |
+| 账号 | `/解绑 unbind`、`/改密 changepassword changepwd`、`/注销 deleteaccount` | 解绑 / 改密 / 注销（仅私聊，`game.player.info`） |
+| 我的角色 | `/状态 信息 status info` | 查看角色状态，自动结算离线收益（`game.player.info`） |
+| 我的角色 | `/疗伤 heal`、`/灵根 spiritualroot talent`、`/称号 title chenghao` | 疗伤、灵根查看与重铸、称号列表/装备/卸下 |
+| 修炼 | `/打坐 闭关 meditate cultivate`、`/停止 stop`、`/突破 breakthrough`、`/转世 reincarnate` | 打坐/停止结算/突破渡劫/转世（模块 `cultivation`） |
+| 修炼 | `/晨修 morning`、`/天象 daily` | 每日晨修与今日天象/机缘（模块 `cultivation`） |
+| 战斗 | `/挑战 pvp` | 切磋：`接受`/`拒绝`（模块 `pvp`，`game.pvp.challenge`） |
+| 战斗 | `/决斗 切磋 fight 战斗 讨伐 boss` | 多功能战斗入口（pvp 子包 `PvpCommand`，模块 `pvp`） |
+| 战斗 | `/学习 learn`、`/技能 skills`、`/战斗策略 战术 tactic` | 技能学习 / 列表 / 战斗策略（模块 `skill`） |
+| 背包 | `/背包 backpack`、`/使用 itemuse`、`/装备 equip`、`/卸下 unequip`、`/已装备 equipped`、`/强化 enhance` | 背包与装备操作（模块 `inventory`） |
+| 背包 | `/物品列表 itemmap` | 物品中文名 ↔ key 映射表 |
+| 探索 | `/游历 explore`、`/秘境 secret`、`/进入秘境 secret_enter`、`/地图 map` | 游历（冷却 60 秒）、秘境列表与进入、地图移动 |
+| 坊市 | `/坊市 market`、`/上架 list`、`/购买 buy`、`/撤单 cancellisting`、`/我的挂单 mylistings` | 坊市挂单买卖（模块 `trade`，权限 `game.player.info`） |
+| 宗门 | `/宗门 sect` | 宗门全套子命令：`create 创建`、`join 加入`、`info 信息`、`approve 通过`、`donate 捐献`、`warehouse 仓库`、`war 宣战`、`transfer 转让` 等（模块 `sect`，`game.sect.manage`） |
+| 经济 | `/签到 signin`、`/灵庄 bank`、`/拍卖 auction`、`/回收 recycle`、`/修炼加速 boost`、`/灵石兑换 石兑`、`/提纯 purify` | 每日签到、灵石存取、竞拍、回收、加速修炼、灵石流转（模块 `economy`） |
+| 经济 | `/转化 exchange convert` | 物品 ↔ 能量互转（模块 `energy`） |
+| 社交 | `/好友 friend` | `add 添加`、`accept 接受`、`remove 删除`、`list 列表`、`pending 待处理`（模块 `friend`，`game.friend.manage`） |
+| 社交 | `/查人 查找 search`、`/私聊 msg`、`/排行 排行榜 rank` | 玩家搜索 / 私聊 / 排行榜（模块 `search` / `chat` / `rank`） |
+| 实用功能 | `/按钮 button 互动按钮` | QQ 官方按钮演示与单指令按钮（仅 QQ 官方渠道，见上） |
+| 实用功能 | `/兑换 redeem`、`/增益 buff` | 兑换码兑换、查看增益（`/增益` 属模块 `buff`） |
+| 管理 | `/服务器状态 serverstatus`、`/日志 logs`、`/玩家列表 players`、`/玩家详情 playerinfo`、`/编辑玩家 editplayer`、`/发放 give`、`/经济 economy`、`/debug 调试`、`/修复装备 fixequip`、`/cleardb_players`、`/cleardb_all`、`/重启 restart`、`/关闭服务端 shutdown` | 管理员指令（多数仅私聊，需 `admin.*` 权限码，详见 [权限体系](./permissions) 与 [REST API](./rest-api)） |
+
+> 覆盖提示：上表与 `/帮助` 的完整清单并非逐条全量罗列——服务端鼓励「分类举例 + 帮助发现」，任何时刻以 `/帮助` 输出为准；各指令背后调用的玩法服务见 [内部服务 API](./internal-api)。
 
 ## 相关文档
 
-- 指令背后调用的服务 → [内部服务 API](./internal-api)
-- 权限码定义 → [权限系统](./permissions)
-- OneBot 服务器配置 → [配置说明](./config)
+- 指令背后的玩法服务与事件 → [内部 API 一览](./internal-api)
+- 权限码定义与角色分配 → [权限体系](./permissions)
+- OneBot / QQ 官方 / Minecraft 三种接入与实例配置 → [适配器与外部接入](./adapters)
+- 指令即路由 / REST 双注册实现 → [架构总览](./architecture)
+- 渠道与实例配置键 → [配置说明](./config)
