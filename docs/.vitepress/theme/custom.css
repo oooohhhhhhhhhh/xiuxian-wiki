@@ -112,10 +112,10 @@
   text-align: center;
 }
 
+/* mermaid 输出的是 width="100%" + style="max-width: <原始宽度>px"，
+   这里保持这个行为：图按容器宽度等比缩放，永远铺满且不溢出屏幕 */
 .vp-doc pre.mermaid svg {
-  /* 不要压到容器宽度：mermaid 那边关掉了 useMaxWidth，图按原始尺寸画，
-     太宽就靠外层 pre 的 overflow-x 横向滚动，字号保持可读 */
-  max-width: none;
+  max-width: 100%;
   height: auto;
   margin: 0 auto;
 }

@@ -16,22 +16,6 @@ type MermaidApi = typeof import('mermaid').default
 
 let mermaidPromise: Promise<MermaidApi> | null = null
 
-/**
- * mermaid 默认（useMaxWidth: true）会把图缩放到容器宽度。
- * 架构图这种宽图算出来有 3700px，压进 688px 的正文栏后字号只剩 3px，
- * 等于白画。这里统一按原始尺寸输出，超出部分交给外层容器横向滚动。
- */
-const WIDE_DIAGRAM_TYPES = [
-  'flowchart', 'swimlane', 'sequence', 'gantt', 'journey', 'class', 'state',
-  'er', 'pie', 'quadrantChart', 'xyChart', 'requirement', 'mindmap', 'ishikawa',
-  'kanban', 'timeline', 'gitGraph', 'c4', 'sankey', 'block', 'packet',
-  'treeView', 'architecture', 'eventmodeling', 'radar', 'venn', 'cynefin',
-]
-
-const NATURAL_SIZE_CONFIG = Object.fromEntries(
-  WIDE_DIAGRAM_TYPES.map((type) => [type, { useMaxWidth: false }]),
-)
-
 function loadMermaid(): Promise<MermaidApi> {
   if (!mermaidPromise) {
     mermaidPromise = import('mermaid').then((mod) => mod.default)
@@ -71,7 +55,6 @@ async function renderMermaid(): Promise<void> {
   try {
     const mermaid = await loadMermaid()
     mermaid.initialize({
-      ...NATURAL_SIZE_CONFIG,
       startOnLoad: false,
       theme,
       securityLevel: 'strict',
