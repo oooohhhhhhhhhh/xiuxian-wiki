@@ -119,3 +119,17 @@
   height: auto;
   margin: 0 auto;
 }
+
+/* 点击放大：宽度/高度由 JS 按 viewBox 原始尺寸写进 style，
+   这里只需要解掉 mermaid 内联的 max-width（内联样式要靠 !important 压） */
+.vp-doc pre.mermaid.mermaid-zoomed svg {
+  max-width: none !important;
+}
+
+.vp-doc pre.mermaid[data-mermaid-rendered='true'] {
+  cursor: zoom-in;
+}
+
+.vp-doc pre.mermaid.mermaid-zoomed {
+  cursor: zoom-out;
+}

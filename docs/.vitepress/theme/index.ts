@@ -63,11 +63,54 @@ async function renderMermaid(): Promise<void> {
     await mermaid.run({ nodes: pending })
     for (const node of pending) {
       node.dataset.mermaidRendered = 'true'
+      bindZoomToggle(node)
+      // 配色切换会重建 SVG，放大状态要重新套到新节点上
+      applyZoom(node, node.classList.contains('mermaid-zoomed'))
     }
   } catch (err) {
     // 渲染失败时容器里还留着源码，不会白屏
     console.error('[mermaid] 渲染失败：', err)
   }
+}
+
+/**
+ * 图默认等比缩放到正文栏宽度。架构图这种宽图缩完字号只有几 px，
+ * 所以点一下切到 100% 原始尺寸（交给容器的 overflow-x 横向看），再点缩回去。
+ */
+function applyZoom(node: HTMLElement, zoomed: boolean): void {
+  const svg = node.querySelector<SVGSVGElement>('svg')
+  if (!svg) return
+
+  if (zoomed) {
+    // 用 viewBox 的原始尺寸覆盖 mermaid 写死的 width="100%"
+    const box = svg.viewBox?.baseVal
+    if (box && box.width > 0) {
+      svg.style.width = `${box.width}px`
+      svg.style.height = `${box.height}px`
+    }
+  } else {
+    svg.style.width = ''
+    svg.style.height = ''
+  }
+
+  node.classList.toggle('mermaid-zoomed', zoomed)
+  node.title = zoomed ? '点击还原为适应屏幕' : '点击放大到原始尺寸'
+}
+
+function bindZoomToggle(node: HTMLElement): void {
+  if (node.dataset.mermaidZoomBound === 'true') return
+  node.dataset.mermaidZoomBound = 'true'
+  node.setAttribute('role', 'button')
+  node.setAttribute('tabindex', '0')
+
+  const toggle = () => applyZoom(node, !node.classList.contains('mermaid-zoomed'))
+  node.addEventListener('click', toggle)
+  node.addEventListener('keydown', (event) => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault()
+      toggle()
+    }
+  })
 }
 
 /**
