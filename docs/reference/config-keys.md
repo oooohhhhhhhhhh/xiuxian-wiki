@@ -1,0 +1,326 @@
+# 配置项全表
+
+本页是 `config/application.yml` 与 `config/plugins.yml` 的**逐项对照表**，
+用于查阅配置键的名称、类型、默认值与作用。配置的使用方式与合并规则见
+[配置详解](/guide/config)。
+
+::: tip 默认值的含义
+表中「默认值」一列取自 jar 内置的 `application.yml` 模板。
+由于外部 `config/application.yml` 会**覆盖**内置模板（而不是替换），
+升级后新增的配置键会自动继承模板里的默认值，**不需要你手工补齐**。
+:::
+
+## application.yml
+
+### 1. 应用信息 `app`
+
+| 配置键 | 类型 | 默认值 | 说明 |
+| --- | --- | --- | --- |
+| `app.name` | string | `修仙世界` | 应用显示名称，用于 OAuth 授权页等前端展示 |
+
+### 2. HTTP 服务器 `server`
+
+| 配置键 | 类型 | 默认值 | 说明 |
+| --- | --- | --- | --- |
+| `server.host` | string | `127.0.0.1` | 监听地址。`0.0.0.0` 对外网开放，`127.0.0.1` 仅本机 |
+| `server.port` | int | `8080` | HTTP 服务端口（管理后台 `/api/admin`、REST 接口） |
+
+::: warning 默认只监听本机
+默认值 `127.0.0.1` 表示**外网无法访问**。要让外部访问（例如远程玩家里连接 REST 或管理后台），
+需要改为 `0.0.0.0`，并自行做好反向代理与防火墙配置。
+:::
+
+### 3. 数据库 `database`
+
+| 配置键 | 类型 | 默认值 | 说明 |
+| --- | --- | --- | --- |
+| `database.type` | string | `sqlite` | 数据库类型：`sqlite`（零依赖，推荐单机）或 `mysql` |
+| `database.url` | string | `jdbc:mysql://localhost:3306/xiuxian?...` | MySQL 连接串，**仅 `type=mysql` 时使用** |
+| `database.username` | string | `root` | MySQL 用户名，仅 `type=mysql` 时使用 |
+| `database.password` | string | `root` | MySQL 密码，仅 `type=mysql` 时使用 |
+| `database.sqlite_path` | string | `xiuxian.db` | SQLite 数据库文件路径，仅 `type=sqlite` 时使用 |
+| `database.pool_max` | int | `4` | 连接池最大连接数（SQLite 建议 2~8，MySQL 建议 8~32） |
+
+### 4. JWT 签名密钥 `jwt`
+
+| 配置键 | 类型 | 默认值 | 说明 |
+| --- | --- | --- | --- |
+| `jwt.secret` | string | `""`（空） | 玩家 Token 签名密钥 |
+
+::: danger 留空会导致重启后所有玩家掉线
+`jwt.secret` 留空时，服务端**每次启动都会随机生成**一个密钥，
+这意味着重启后所有已签发的玩家 Token 立即失效，玩家需要重新登录。
+
+生产环境请设为至少 256 位随机串：
+
+```bash
+openssl rand -base64 48
+```
+:::
+
+### 5. 全局季节系统 `season`
+
+| 配置键 | 类型 | 默认值 | 说明 |
+| --- | --- | --- | --- |
+| `season.mode` | string | `calendar` | 更替模式：`calendar`=按真实月份四季；`cycle`=按小时循环 |
+| `season.cycle_hours` | int | `6` | `cycle` 模式下每季持续小时数（更替时全服广播） |
+
+### 6. OAuth2 `oauth2`
+
+| 配置键 | 类型 | 默认值 | 说明 |
+| --- | --- | --- | --- |
+| `oauth2.enabled` | bool | `true` | 是否启用 OAuth2 授权端点 |
+| `oauth2.client_id` | string | `xiuxian_oauth_client` | 客户端 ID |
+| `oauth2.client_secret` | string | `xiuxian_oauth_secret_please_change` | 客户端密钥（**务必修改**） |
+| `oauth2.scopes` | string | `read write` | 授权作用域（空格分隔） |
+| `oauth2.token_ttl_seconds` | int | `3600` | Access Token 有效时长（秒） |
+
+### 7. 玩家数据文件化 `player-data`
+
+| 配置键 | 类型 | 默认值 | 说明 |
+| --- | --- | --- | --- |
+| `player-data.enabled` | bool | `true` | 是否启用玩家数据文件化落盘 |
+| `player-data.dir` | string | `data/players` | 数据文件存放目录 |
+| `player-data.auto-sync-seconds` | int | `30` | 变更数据定期落盘间隔（秒），`0` 关闭自动同步 |
+| `player-data.self-restore` | bool | `false` | 是否允许玩家用导出文件自助恢复（默认关闭，防刷） |
+
+### 8. 管理后台 `admin`
+
+| 配置键 | 类型 | 默认值 | 说明 |
+| --- | --- | --- | --- |
+| `admin.username` | string | `admin` | 管理后台账号 |
+| `admin.password_hash` | string | `$2a$10$njJJacGfGPEX1FHD6MB1HeKEgjfWx5zF2nrGo.gEbdjb3Q.KA3gcC` | 管理后台密码的 bcrypt 哈希 |
+
+::: danger 默认密码是 admin123，生产环境必须更换
+模板里的哈希对应默认密码 **`admin123`**，上线前请通过安装向导重新设置。
+
+另外注意：**不要再配置明文 `admin.password`**。首次启动时明文会被自动哈希为
+`admin.password_hash`，随后清除明文并**重写整个配置文件**——这会导致文件里的注释全部丢失。
+:::
+
+### 9. 邮件 SMTP `smtp`
+
+| 配置键 | 类型 | 默认值 | 说明 |
+| --- | --- | --- | --- |
+| `smtp.host` | string | `smtp.qq.com` | SMTP 服务器地址 |
+| `smtp.port` | int | `587` | SMTP 端口（587=STARTTLS，465=SSL） |
+| `smtp.username` | string | `""` | SMTP 登录账号（通常为发件邮箱地址） |
+| `smtp.password` | string | `""` | SMTP 授权码（**非**邮箱登录密码） |
+| `smtp.from` | string | `""` | 发件人地址（留空则使用 `smtp.username`） |
+| `smtp.auth` | bool | `true` | 是否启用 SMTP 认证 |
+| `smtp.starttls` | bool | `true` | 是否启用 STARTTLS 加密 |
+
+### 10. 注册邮箱验证码 `verify_code`
+
+| 配置键 | 类型 | 默认值 | 说明 |
+| --- | --- | --- | --- |
+| `verify_code.enabled` | bool | `true` | 是否要求注册时通过邮箱验证码 |
+| `verify_code.allowed_domains` | list | `qq.com`、`163.com`、`126.com`、`gmail.com`、`outlook.com`、`hotmail.com` | 允许注册的邮箱域名（逗号分隔读取） |
+| `verify_code.rate_limit_seconds` | int | `60` | 同一邮箱发送验证码的冷却时间（秒） |
+
+### 11. OneBot QQ 机器人 `onebot`
+
+| 配置键 | 类型 | 默认值 | 说明 |
+| --- | --- | --- | --- |
+| `onebot.enabled` | bool | `true` | 是否启用 OneBot 接入 |
+| `onebot.send_mode` | string | `text` | 消息发送模式：`text`=纯文本；其他可选（截图等） |
+| `onebot.screenshot.window_title` | string | `""` | 截图目标窗口标题（留空自动识别） |
+| `onebot.screenshot.poll_interval` | int | `2000` | 截图轮询间隔（毫秒） |
+
+::: tip 适配器实例参数不在这里
+OneBot / Minecraft 适配器的**实际运行参数**（地址、端口、令牌、启用状态）
+由 `config/adapters.json` 控制，本段只负责类型级开关与发送模式。
+详见[消息通道与适配器](/dev/adapters)。
+:::
+
+### 12. Minecraft 内置服务器 `minecraft`
+
+| 配置键 | 类型 | 默认值 | 说明 |
+| --- | --- | --- | --- |
+| `minecraft.jar_path` | string | `""` | 服务端 jar 包路径（内置 MC 服务器用） |
+| `minecraft.server_dir` | string | `mc_server` | 服务端工作目录 |
+| `minecraft.java_path` | string | `java` | Java 可执行路径 |
+| `minecraft.min_memory_mb` | int | `512` | JVM 最小堆内存（MB） |
+| `minecraft.max_memory_mb` | int | `1024` | JVM 最大堆内存（MB） |
+| `minecraft.ready_timeout_seconds` | int | `120` | 等待服务就绪超时（秒） |
+| `minecraft.extra_jvm_args` | string | `""` | 额外的 JVM 启动参数 |
+| `minecraft.online_mode` | bool | `false` | 是否正版验证（`true`=正版用户名，`false`=离线） |
+| `minecraft.command_prefix` | string | `xiuxian` | MC 内指令前缀 |
+
+### 13. 日志 `logging`
+
+| 配置键 | 类型 | 默认值 | 说明 |
+| --- | --- | --- | --- |
+| `logging.level` | string | `DEBUG` | 日志级别：`TRACE`/`DEBUG`/`INFO`/`WARN`/`ERROR` |
+| `logging.dir` | string | `log` | 日志文件输出目录 |
+| `logging.color` | bool | `true` | 控制台日志是否着色 |
+
+::: tip 生产环境建议
+默认的 `DEBUG` 级别会输出大量细节，长期运行建议改为 `INFO` 以减小日志体积。
+:::
+
+### 14. 背包系统 `inventory`
+
+| 配置键 | 类型 | 默认值 | 说明 |
+| --- | --- | --- | --- |
+| `inventory.base_capacity` | int | `30` | 初始背包格子数 |
+| `inventory.capacity_per_level` | int | `5` | 每升一级增加的背包格子数 |
+
+### 15. 坊市 `market`
+
+| 配置键 | 类型 | 默认值 | 说明 |
+| --- | --- | --- | --- |
+| `market.listing_duration_hours` | int | `72` | 挂单有效时长（小时），到期自动下架并把物品退回卖家 |
+| `market.price_history_keep_days` | int | `30` | 成交价格历史保留天数（超期由清理任务删除） |
+| `market.price_history_cleanup_interval_hours` | int | `6` | 价格历史清理任务执行间隔（小时） |
+
+::: warning 升级后修改此值会影响存量挂单
+挂单的到期时间是**上架时**按下单时刻 + `listing_duration_hours` 算好并写入数据库的。
+改这个值只影响**之后新上架**的挂单；已有挂单的到期时间不会重算。
+:::
+
+### 16. 性能 / 线程池 `performance`
+
+| 配置键 | 类型 | 默认值 | 说明 |
+| --- | --- | --- | --- |
+| `performance.low_memory` | bool | `false` | 低内存模式（小内存机器开启，减少缓存占用） |
+| `performance.grizzly_io_threads` | int | `2` | Grizzly IO 线程数 |
+| `performance.grizzly_worker_cores` | int | `4` | Grizzly 工作线程核心数 |
+| `performance.grizzly_worker_max` | int | `8` | Grizzly 工作线程最大数 |
+| `performance.memory_log_entries` | int | `200` | 内存中保留的日志条数上限 |
+
+### 17. 网络 `network`
+
+| 配置键 | 类型 | 默认值 | 说明 |
+| --- | --- | --- | --- |
+| `network.connection_timeout_ms` | int | `10000` | 连接建立超时（毫秒） |
+| `network.read_timeout_ms` | int | `30000` | 读取超时（毫秒） |
+
+### 18. Minecraft MOTD 预览 `motd`
+
+| 配置键 | 类型 | 默认值 | 说明 |
+| --- | --- | --- | --- |
+| `motd.port` | int | `25565` | MOTD 监听端口（显示服务器列表预览用） |
+| `motd.max_players` | int | `2026` | 展示的最大玩家数 |
+| `motd.version_name` | string | `§b§l修仙世界 §r§f— §eAPI v1.0` | 版本行文案 |
+| `motd.protocol_version` | int | `-1` | 协议版本（`-1`=自动/未知） |
+| `motd.line1` | string | `§b§l修 仙 世 界 §r§8— §e§lXiuXian Game` | 第 1 行 |
+| `motd.line2` | string | `§7` | 第 2 行 |
+| `motd.line3` | string | `§f⚔ §a境界突破 §7| §d秘境探索 §7| §e游历修仙 §f⚔` | 第 3 行 |
+| `motd.join_message` | string | `""` | 玩家尝试加入（登录）时显示的消息 |
+| `motd.redirect_server` | string | `""` | 玩家点"加入服务器"后的目标服务器（`host` 或 `host:port`） |
+| `motd.redirect_delay_seconds` | int | `5` | 仅作为 `join_message` 中 `{delay}` 占位符的数值 |
+
+`motd.join_message` 支持的占位符：
+
+| 占位符 | 含义 |
+| --- | --- |
+| `{username}` | 玩家名 |
+| `{online}` | 当前在线人数 |
+| `{max}` | 最大玩家数 |
+| `{delay}` | 重定向秒数 |
+| `{server}` | 目标服务器 |
+
+::: tip redirect_server 的作用
+配置后，任意版本的客户端都会通过 **TCP 透传隧道**"直接接入"目标服务器
+（效果等同玩家直接连目标地址），不再走官方 transfer，也不会再出现
+`multiplayer.disconnect.transfer` 断开提示。目标服务器上的 AuthMe 登录界面、
+正版/离线验证等流程照常进行。留空则不跳转，仅显示拒绝提示。
+
+注意：透传后目标服务器看到的是**本服务所在机器的 IP**（如同反代/跳板入口）。
+:::
+
+### 19. 内置玩法模块（已迁移）
+
+`built_in_plugins` 段**已废弃**。内置插件/玩法模块的启停开关已迁移到独立配置文件
+`config/plugins.yml`，也可在 WebUI「插件管理」页运行时启停并写回该文件。
+
+旧版本写在 `application.yml` 里的 `built_in_plugins` 段仅作为**只读兜底**：
+升级后首次启动会自动迁移，未迁移到的键仍会读取，但一旦 `plugins.yml` 里存在同名键即以 `plugins.yml` 为准。
+
+---
+
+## plugins.yml
+
+`config/plugins.yml` 的根节点是 `plugins:`，共 **30 个开关**：
+24 个稳定玩法模块、2 个实验性插件、4 个消息通道适配器。
+
+取值规则：`true` = 启用（默认），`false` = 停用（重启后生效），注释掉的行 = 使用默认值 `true`。
+
+**取值优先级：** `config/plugins.yml` > jar 内模板 > 旧配置只读兜底
+（`application.yml` 的 `built_in_plugins.*` 与 `config/experimental.yml` 的 `experimental.*`）。
+
+### 基础玩法模块
+
+| 开关 | 默认值 | 说明 |
+| --- | --- | --- |
+| `exploration` | `true` | 探索/游历系统（游历事件、随机遭遇） |
+| `secret_realm` | `true` | 秘境系统（进入秘境、秘境探索） |
+| `trade` | `true` | 坊市交易系统（上架、购买、取消） |
+| `sect` | `true` | 宗门系统（创建宗门、宗门管理、宗门仓库） |
+| `farm` | `true` | 农场系统（种植、浇水、施肥、收获） |
+| `cave` | `true` | 洞府系统（灵力收集、洞府升级） |
+
+### 社交玩法模块
+
+| 开关 | 默认值 | 说明 |
+| --- | --- | --- |
+| `chat` | `true` | 聊天系统（世界频道、私聊） |
+| `friend` | `true` | 好友系统（添加好友、好友列表） |
+| `rank` | `true` | 排行系统（查看排行榜） |
+| `search` | `true` | 搜索系统（按名称搜索玩家） |
+
+### 移动 / 养成玩法模块
+
+| 开关 | 默认值 | 说明 |
+| --- | --- | --- |
+| `map` | `true` | 地图系统（查看地图、移动旅行） |
+| `team` | `true` | 团队系统（创建团队、组队副本） |
+| `title` | `true` | 称号系统（成就、称号装备） |
+| `player` | `true` | 角色系统（状态、疗伤、灵根） |
+
+### 修炼 / 战斗玩法模块
+
+| 开关 | 默认值 | 说明 |
+| --- | --- | --- |
+| `cultivation` | `true` | 修炼系统（打坐、突破、转世、天象、晨修） |
+| `skill` | `true` | 技能系统（学习技能、技能列表、战斗策略） |
+| `pvp` | `true` | 战斗系统（挑战、决斗） |
+| `inventory` | `true` | 背包/装备系统（物品、装备、强化） |
+
+### 经济 / 制造玩法模块
+
+| 开关 | 默认值 | 说明 |
+| --- | --- | --- |
+| `economy` | `true` | 经济系统（拍卖、灵庄、商店、签到、灵石流转） |
+| `energy` | `true` | 能量系统（物品转化能量） |
+| `technique` | `true` | 功法系统（功法学习、装备、升级） |
+| `crafting` | `true` | 炼丹锻造系统（配方、炼制） |
+| `buff` | `true` | Buff 系统（增益效果） |
+| `formation` | `true` | 阵法系统（阵法布置、阵法加成） |
+
+### 实验性插件
+
+停用即整体关闭该实验性内容：相关指令/接口会被门控拒绝。
+这两个开关由旧 `experimental.yml` 的 `sect_war` / `energy_exchange` 迁移而来。
+
+| 开关 | 默认值 | 说明 |
+| --- | --- | --- |
+| `experimental_sect_war` | `false` | 宗门战（实验性，默认关闭） |
+| `experimental_energy_exchange` | `true` | 能量转化/等价交换（实验性，默认开启） |
+
+### 消息通道适配器
+
+类型级总开关；**实例级** `enabled` 仍在 `config/adapters.json`。
+
+| 开关 | 默认值 | 说明 |
+| --- | --- | --- |
+| `onebot` | `true` | OneBot WebSocket/截图 消息通道 |
+| `qq` | `true` | QQ 官方机器人消息通道 |
+| `minecraft` | `true` | Minecraft 内嵌服务器消息通道 |
+| `minecraft-player` | `true` | Minecraft 玩家直连消息通道 |
+
+::: warning 外部插件不在此文件
+`plugins/*.jar` 形式的第三方插件，其开关由插件自身的启停状态管理，
+不受 `plugins.yml` 控制。
+:::

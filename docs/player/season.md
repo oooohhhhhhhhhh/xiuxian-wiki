@@ -1,94 +1,249 @@
 # 季节系统
 
-季节不再是种田的附属设定，而是**全服共享的「天道时序」**：一个 JVM 内所有玩家看到同一个季节，季节经服务端每 10 秒检查一次并影响修炼、晨修、游历、掉落与作物生长等全局结算。实现集中在 `game/service/SeasonService.java`（静态守护线程驱动），配置项在 `application.yml` 的 `season` 段，季节枚举与作物属性定义见 `game/entity/Season.java`。
+季节（`Season`）是**全服共享的「天道时序」**，不只是种田系统的附属设定，而是同步影响闭关修炼、晨修、游历、灵石获取与物品掉落的全局玩法。核心实现为 `src/main/java/com/mtxgdn/game/service/SeasonService.java`。
 
-## 查看方式
+相关源码：
 
-- 通过 REST / WebSocket 的季节信息接口查看**当前季节、更替时间与全局倍率**（修炼 / 游历 / 灵石 / 掉落；晨修与修炼同倍率）；
-- QQ 指令 `/天象`（别名 `daily`）查看**今日天象**与每日机缘（权限码 `game.player.info`，模块 `cultivation`）；
-- 闭关开始 / 结束时会返回当前季节与季节倍率。
+| 关注点 | 文件 |
+| --- | --- |
+| 季节服务与倍率 | `src/main/java/com/mtxgdn/game/service/SeasonService.java` |
+| 季节枚举与作物修正 | `src/main/java/com/mtxgdn/game/entity/Season.java` |
+| 配置项 | `src/main/resources/application.yml`（`season` 段） |
 
-## 更替模式
+## 一、两种模式
 
-由 `config/application.yml` 配置：
+配置项位于 `application.yml`：
 
 ```yaml
 season:
-  mode: calendar        # 更替模式：calendar=按真实月份四季；cycle=按小时循环
-  cycle_hours: 6        # cycle 模式下每季持续小时数（更替时全服广播）
+  mode: calendar               # 更替模式：calendar=按真实月份四季；cycle=按小时循环
+  cycle_hours: 6               # cycle 模式下每季持续小时数（更替时全服广播）
 ```
 
-| 模式 | 规则 | 更替时刻 |
-|------|------|----------|
-| `calendar`（默认） | 按真实月份分四季：3~5 月春、6~8 月夏、9~11 月秋、12~2 月冬（月份按服务端本地时区） | 每季**首日 0 点**（12~2 月冬从上年 12 月起算） |
-| `cycle` | 按固定小时数循环：当前时间戳对 `cycle_hours` 取模分 4 段，顺序 春 → 夏 → 秋 → 冬 | 每 `cycle_hours` 小时一换（默认 6 小时） |
+| 模式 | 判定 | 更替时机 |
+| --- | --- | --- |
+| `calendar`（默认） | 按服务器本地真实月份 | 3–5 月春、6–8 月夏、9–11 月秋、12–2 月冬 |
+| `cycle` | `Math.floorMod(now / CYCLE_DURATION_MS, 4)` 取 0/1/2/3 | 每 `cycle_hours` 小时一季，默认 6 小时 |
 
-- 服务端每 **10 秒** tick 一次；`cycle` 模式下季节变化时经 WebSocket 向全服广播 `season_change`（`SeasonService.setChangeListener` 注册的监听器）；
-- 季节状态（当前季节、起止时间、剩余毫秒）对外暴露：`getCurrentSeason` / `getSeasonStartMs` / `getSeasonEndMs` / `getSeasonRemainingMs`；
-- `cycle_hours` 取值最小为 1（`Math.max(1, …)`）。
+`CYCLE_DURATION_MS = max(1, season.cycle_hours) × 3600_000L`，即 `cycle_hours` 最小被夹到 1 小时。
 
-## 四季全局倍率
+### 四季
 
-| 玩法 | 春 | 夏 | 秋 | 冬 |
-|------|:---:|:---:|:---:|:---:|
-| 修炼倍率 | ×1.10 | ×1.05 | **×1.15** | ×0.95 |
-| 晨修 / 机缘经验倍率 | = 修炼倍率 | = 修炼倍率 | = 修炼倍率 | = 修炼倍率 |
-| 游历收益倍率 | ×1.10 | ×1.00 | ×1.05 | ×0.90 |
-| 灵石获取倍率 | ×1.00 | ×0.95 | **×1.20** | ×0.90 |
-| 物品掉落倍率 | ×1.05 | ×1.00 | **×1.15** | ×0.90 |
+| 枚举 | 显示名 | 描述 |
+| --- | --- | --- |
+| `SPRING` | 春季 | 万物复苏，木系作物生长加速 |
+| `SUMMER` | 夏季 | 烈日炎炎，火系作物生长加速 |
+| `AUTUMN` | 秋季 | 金风送爽，金系作物生长加速 |
+| `WINTER` | 冬季 | 天寒地冻，水系/冰系作物生长加速 |
 
-**实际生效路径（以代码为准）**：
+`Season.next()` 的循环顺序为 春 → 夏 → 秋 → 冬 → 春。
 
-- **修炼倍率**：乘入打坐闭关经验倍率链（境界 × 季节 × 地点 × 灵根 × 天象 × 功法 × 称号 × 阵法，全程 double 累乘最后取整），在线闭关与离线修炼共用；**晨修/机缘经验倍率 = 修炼倍率**，应用于每日晨修与每日机缘的经验奖励；
-- **游历倍率**：在游历事件结算后**仅当倍率 > 1.0 时**按已得金币/灵石/经验追发（`ExplorationService`）——即春 +10%、秋 +5%，夏（×1.00）与冬（×0.90）不追发也不倒扣；
-- **灵石倍率**：当前接入点为**每日晨修的灵石产出**（`DailyService.doMorningCultivation`），其余灵石来源（游历宝藏、战斗、洞府收集等）不受季节灵石倍率影响；
-- **掉落倍率**：修正 PVE 战斗中妖兽的**掉落概率**（`怪物基础掉落概率 × 季节掉落倍率`，见 [PVE 战斗](../player/pve-combat)）。
+## 二、季节时钟
 
-## 作物生长加成
+`SeasonService` 使用单线程守护调度器 `global-season-tick`，**每 10 秒**重算一次季节（初始延迟 10 秒），静态块中立即执行一次初始化。
 
-不同元素属性的作物在不同季节获得生长速度修正（`Season.getGrowthModifier`，应用于农场作物生长推进与种植提示）：
+```java
+private static void tick() {
+    // 内置模块门控：修炼模块停用后暂停天象刷新
+    if (!com.mtxgdn.plugin.BuiltInPluginRegistry.getInstance().isEnabledOrUnknown("cultivation")) return;
+    recompute(System.currentTimeMillis(), false);
+}
+```
 
-| 季节 | 加速 | 减速 |
-|------|------|------|
-| 春 | 木 / 灵 ×1.25 | 火 ×0.75 |
-| 夏 | 火 ×1.30 | 水 / 冰 ×0.80 |
-| 秋 | 金 / 土 ×1.20 | 木 ×0.90 |
-| 冬 | 水 / 冰 ×1.30 | 火 ×0.70 |
+::: warning 模块门控
+内置模块 `cultivation` 被停用（`plugins.yml` 中 `cultivation: false`）时，季节 tick 直接返回，季节不再重算。恢复模块后需等下一次 tick 或重启。
+:::
 
-## 每日天象（六种）
+### 对外接口
 
-每天（按服务端本地日期）从 **6 种天象**中随机一种作为「今日天象」（`CelestialPhenomenon` 枚举；每个玩家实例当日首次查询时掷骰，同一天内保持稳定）：
+| 方法 | 返回 |
+| --- | --- |
+| `getCurrentSeason()` | 当前 `Season` 枚举 |
+| `getSeasonStartMs()` | 当前季节开始毫秒时间戳 |
+| `getSeasonEndMs()` | 当前季节结束（下次更替）毫秒时间戳 |
+| `getSeasonRemainingMs()` | `max(0, seasonEndMs - now)` |
+| `getSeasonDurationMs()` | `cycle` 模式返回单季时长；`calendar` 模式返回 `seasonEndMs - seasonStartMs` |
+| `setChangeListener(Consumer<Season>)` | 注册季节更替监听（用于全服广播） |
 
-| key | 名称 | 描述 | 修炼 | 游历 | 战斗 | 灵石 |
-|------|------|------|:---:|:---:|:---:|:---:|
-| `PURPLE_QI` | 紫气东来 | 晨曦紫气弥漫天地，修炼事半功倍 | ×1.30 | ×1.00 | ×1.00 | ×1.00 |
-| `STARLIGHT` | 星辰耀天 | 满天星辰之力倾泻而下，游历收获颇丰 | ×1.00 | ×1.20 | ×1.20 | ×1.00 |
-| `BLOOD_MOON` | 血月当空 | 血色月光笼罩大地，战斗之意空前高涨 | ×1.00 | ×1.00 | ×1.30 | ×1.00 |
-| `SPIRIT_TIDE` | 灵潮涌动 | 天地灵潮汹涌而来，灵石遍地 | ×1.00 | ×1.00 | ×1.00 | ×1.50 |
-| `WITHER_BLOOM` | 枯荣交替 | 万物枯荣在一念之间，恢复之力大增 | ×1.00 | ×1.00 | ×1.00 | ×1.00 |
-| `TRANQUIL` | 万籁俱寂 | 天地归于沉寂，一切收益微增 | ×1.05 | ×1.05 | ×1.05 | ×1.05 |
+### 季节起止计算
 
-**实际生效路径（源码事实）**：
+| 模式 | 开始 | 结束 |
+| --- | --- | --- |
+| `cycle` | `now - floorMod(now, CYCLE_DURATION_MS)` | 开始 + `CYCLE_DURATION_MS` |
+| `calendar`（春 3–5 月） | 当年 3 月 1 日 00:00:00 | 当年 6 月 1 日 00:00:00 |
+| `calendar`（夏 6–8 月） | 当年 6 月 1 日 00:00:00 | 当年 9 月 1 日 00:00:00 |
+| `calendar`（秋 9–11 月） | 当年 9 月 1 日 00:00:00 | 当年 12 月 1 日 00:00:00 |
+| `calendar`（冬 12–2 月） | 12 月 1 日（1/2 月时年份 −1） | 次年 3 月 1 日 00:00:00 |
 
-- **修炼倍率**（紫气东来 / 万籁俱寂）：乘入打坐闭关经验倍率链与离线修炼；每日晨修与「今日机缘」经验奖励也会乘该天象修炼倍率；**离线闭关在已含天象倍率的在线路径之上再乘一次今日天象修炼倍率**（`OfflineRewardService`，与在线结算叠加）；
-- **游历 / 战斗倍率（已接入）**：游历天象倍率（星辰耀天 / 万籁俱寂）在季节加成后按已结算收益补发到游历事件（金币/灵石/经验，`ExplorationService`）；战斗天象倍率（星辰耀天 / 血月当空 / 万籁俱寂）乘入 PVE 妖兽经验与金币、PVP 胜负结算经验与金币、团队 Boss 通关后各成员的每人经验与金币（`CombatService` / `SecretRealmService`，乘的是结算收益而非回合伤害）；
-- **灵石倍率**（灵潮涌动 / 万籁俱寂）：应用于每日晨修灵石、「今日机缘·秘境」的灵石奖励，以及 PVE 妖兽掉落的灵石与团队 Boss 通关灵石（`applySpiritStone`）。
+季节发生实际变化（`old != next`）时记录日志 `【季节更替】旧 → 新` 并调用注册的 `changeListener`；监听器抛异常只记录错误日志，不影响主流程。
 
-天象每日联动还包括：
+## 三、全局倍率
 
-- **晨修**：每日 **5:00~11:00** 可晨修一次，基础经验 `(境界编号+1)×50`、基础灵石 `(境界编号+1)×10`，连续天数每日 +10% 经验（第一天无加成），再乘天象与季节倍率；
-- **灵根共鸣**：累计活跃满 **7 / 30 天**发放里程碑属性奖励（HP/MP/攻/防/速/灵，随灵根品级缩放）；
-- 今日机缘目标：游历 3 次（经验）、战斗 1 次（金币）、秘境 1 次（灵石）、学习技能 1 次（经验），完成后按天象倍率结算对应奖励。
+### 修炼倍率（`getCultivationMultiplier`）
 
-## 源码事实与细节
+| 季节 | 倍率 | 注释 |
+| --- | --- | --- |
+| 春季 | ×1.10 | 春回大地，灵气升腾 |
+| 夏季 | ×1.05 | — |
+| 秋季 | ×1.15 | 金秋肃杀，感悟更深 |
+| 冬季 | ×0.95 | 天寒地冻，灵气凝滞 |
 
-- 季节 tick 受内置模块门控：`cultivation` 模块停用时季节刷新暂停（`SeasonService.tick` 首行检查）；
-- `calendar` 模式冬季（12~2 月）的开始时刻回溯到**上年 12 月 1 日**，结束为次年 3 月 1 日，保证四段完整覆盖全年；
-- 秋季是综合收益最高的一季（修炼 ×1.15、灵石 ×1.20、掉落 ×1.15 三高），冬季全面偏低但水/冰系作物最快。
+### 晨修倍率（`getMorningCultivationMultiplier`）
 
-## 相关系统
+直接返回 `getCultivationMultiplier()`，**与闭关倍率完全一致**。
 
-- 季节如何进入修炼倍率链 → [修炼系统](../player/cultivation)
-- 作物生长与种植提示 → [农场系统](../player/farm)
-- 游历的季节加成 → [游历探索](../player/exploration)
-- 晨修 / 机缘 / 灵根共鸣 → [每日系统](../player/daily)
+### 游历倍率（`getExplorationMultiplier`）
+
+| 季节 | 倍率 |
+| --- | --- |
+| 春季 | ×1.10 |
+| 夏季 | ×1.00 |
+| 秋季 | ×1.05 |
+| 冬季 | ×0.90 |
+
+### 灵石倍率（`getSpiritStoneMultiplier`）
+
+| 季节 | 倍率 | 注释 |
+| --- | --- | --- |
+| 春季 | ×1.00 | — |
+| 夏季 | ×0.95 | — |
+| 秋季 | ×1.20 | 秋收冬藏，收获丰盛 |
+| 冬季 | ×0.90 | — |
+
+### 掉落倍率（`getDropMultiplier`）
+
+| 季节 | 倍率 |
+| --- | --- |
+| 春季 | ×1.05 |
+| 夏季 | ×1.00 |
+| 秋季 | ×1.15 |
+| 冬季 | ×0.90 |
+
+### 汇总表
+
+| 季节 | 修炼 | 晨修 | 游历 | 灵石 | 掉落 |
+| --- | --- | --- | --- | --- | --- |
+| 春季 | ×1.10 | ×1.10 | ×1.10 | ×1.00 | ×1.05 |
+| 夏季 | ×1.05 | ×1.05 | ×1.00 | ×0.95 | ×1.00 |
+| 秋季 | ×1.15 | ×1.15 | ×1.05 | ×1.20 | ×1.15 |
+| 冬季 | ×0.95 | ×0.95 | ×0.90 | ×0.90 | ×0.90 |
+
+::: tip 秋季是全收益巅峰
+秋季在修炼、灵石、掉落三项上均为全季最高，且游历仍高于夏季；冬季则是全面的低谷（修炼 −5%、游历 −10%、灵石 −10%、掉落 −10%）。
+:::
+
+### 季节效果描述
+
+`getSeasonEffectDescription()` 返回面向玩家的文案：
+
+| 季节 | 文案 |
+| --- | --- |
+| 春季 | 修炼+10%，游历+10%，木/灵系作物生长加速 |
+| 夏季 | 修炼+5%，火系作物生长加速，灵石-5% |
+| 秋季 | 修炼+15%，灵石+20%，掉落+15%，金/土系作物生长加速 |
+| 冬季 | 修炼-5%，水/冰系作物生长加速，游历-10% |
+
+## 四、各系统如何消费季节倍率
+
+### 闭关修炼
+
+`PlayerService.cultivationMultiplier` 中作为独立的乘数：
+
+```java
+double seasonMultiplier = SeasonService.getCultivationMultiplier();
+double locationMultiplier = ServiceRegistry.getMapService().getCultivationBonus(player.getCurrentLocationId());
+double mult = base * seasonMultiplier * locationMultiplier;
+```
+
+`/打坐` 与 `/停止` 的回复都会展示当前季节名与季节倍率，例如：
+
+```text
+季节: 秋季（×1.15）
+地点: 问道峰（灵气 ×1.5）
+```
+
+### 晨修
+
+`DailyService.doMorningCultivation` 在**天象加成与灵根加成之后**追加季节经验：
+
+```java
+double seasonMultiplier = SeasonService.getMorningCultivationMultiplier();
+long seasonBonusExp = (long)(totalExp * (seasonMultiplier - 1));
+totalExp += seasonBonusExp;
+```
+
+灵石则直接乘季节灵石倍率：
+
+```java
+totalSpiritStones = (long)(totalSpiritStones * SeasonService.getSpiritStoneMultiplier());
+```
+
+晨修成功消息在 `seasonBonusExp > 0` 时追加 `（{季节}加成 +N）`。冬季 `seasonMultiplier = 0.95` 时 `seasonBonusExp` 为负值，不会显示该后缀。
+
+### 游历探索
+
+`ExplorationService` 在事件结算完成后，按**已结算收益**追加季节奖励（仅在 `explMult > 1.0 && result.isSuccess()` 时）：
+
+```java
+double explMult = SeasonService.getExplorationMultiplier();
+long bonusGold = (long)(result.getGoldGained() * (explMult - 1));
+long bonusSS   = (long)(result.getSpiritStonesGained() * (explMult - 1));
+long bonusExp  = (long)(result.getExpGained() * (explMult - 1));
+```
+
+日志追加 `🍂 {季节}游历加成: 金币+N 灵石+N 经验+N`。由于只在 `> 1.0` 时生效，**春/秋加成，夏（1.00）与冬（0.90）不产生追加**（冬季不会倒扣）。
+
+### 战斗掉落
+
+`CombatService` 在 PVE 胜利结算时把季节掉落倍率乘到怪物掉落概率上：
+
+```java
+double dropChance = monster.getLootChance() * SeasonService.getDropMultiplier();
+if (random.nextDouble() < dropChance) { /* 从 lootTable 抽一件 */ }
+```
+
+### 作物生长
+
+`SeasonService.getGrowthModifier(elementType)` 转发到 `Season.getGrowthModifier`，按作物元素类型返回生长倍率：
+
+| 季节 | 加速元素 | 减速元素 | 其他 |
+| --- | --- | --- | --- |
+| 春季 | WOOD / SPIRIT ×1.25 | FIRE ×0.75 | ×1.0 |
+| 夏季 | FIRE ×1.30 | WATER / ICE ×0.80 | ×1.0 |
+| 秋季 | METAL / EARTH ×1.20 | WOOD ×0.90 | ×1.0 |
+| 冬季 | WATER / ICE ×1.30 | FIRE ×0.70 | ×1.0 |
+
+### REST / WebSocket 暴露
+
+`GET /game/...`（`GameResource`）与 WebSocket 的季节接口都会下发以下字段：
+
+```json
+{
+  "explorationMultiplier": 1.05,
+  "spiritStoneMultiplier": 1.20,
+  "dropMultiplier": 1.15
+}
+```
+
+## 五、与天象的区别
+
+季节与「天象」是两个独立系统，同时生效、互相叠乘：
+
+| 维度 | 季节（`SeasonService`） | 天象（`CelestialPhenomenon`） |
+| --- | --- | --- |
+| 更替周期 | `calendar` 按自然月 / `cycle` 按小时 | 按自然日，每日随机 |
+| 是否全服一致 | 是（静态全局状态） | 是（`DailyService` 单例缓存） |
+| 修炼倍率范围 | 0.95 ~ 1.15 | 1.00 ~ 1.30 |
+| 游历倍率范围 | 0.90 ~ 1.10（仅 >1 时追加） | 1.00 ~ 1.20（仅 >1 时追加） |
+| 灵石倍率范围 | 0.90 ~ 1.20 | 1.00 ~ 1.50 |
+| 掉落倍率 | 有（`getDropMultiplier`） | 无独立掉落倍率 |
+
+::: details 季节配置示例
+```yaml
+# 快速验证季节切换：每 1 小时一季
+season:
+  mode: cycle
+  cycle_hours: 1
+```
+切回 `calendar` 即为正式服默认行为。
+:::

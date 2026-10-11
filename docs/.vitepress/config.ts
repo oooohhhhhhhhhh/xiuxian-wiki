@@ -2,60 +2,78 @@ import { defineConfig } from 'vitepress'
 
 export default defineConfig({
   title: '修仙世界 Wiki',
-  description: '修仙世界游戏服务端官方文档（玩家指南 · 开发者文档）',
+  description: '修仙世界游戏服务端官方文档（安装运维 · 玩家玩法 · 开发者文档 · 数据参考）',
   base: '/xiuxian-wiki/',
   cleanUrls: true,
 
   themeConfig: {
     nav: [
       { text: '首页', link: '/' },
-      { text: '快速开始', link: '/guide/quickstart' },
-      { text: '玩家指南', link: '/player/spiritual-root' },
+      { text: '安装运维', link: '/guide/install' },
+      { text: '玩家玩法', link: '/player/' },
       { text: '开发者文档', link: '/dev/architecture' },
-      { text: 'GitHub', link: 'https://github.com/oooohhhhhhhhhh/xiuxian-server-alpha' },
+      { text: '数据参考', link: '/reference/items' },
+      {
+        text: '链接',
+        items: [
+          { text: 'GitHub 仓库', link: 'https://github.com/oooohhhhhhhhhh/xiuxian-server-alpha' },
+          { text: '问题反馈', link: 'https://github.com/oooohhhhhhhhhh/xiuxian-server-alpha/issues' },
+        ],
+      },
     ],
 
     sidebar: {
       '/guide/': [
         {
-          text: '入门',
+          text: '安装与运维',
           collapsed: false,
           items: [
-            { text: '项目简介', link: '/guide/overview' },
-            { text: '快速开始', link: '/guide/quickstart' },
+            { text: '项目总览', link: '/guide/' },
+            { text: '安装与首次启动', link: '/guide/install' },
+            { text: '配置详解', link: '/guide/config' },
+            { text: '插件开关', link: '/guide/plugins' },
+            { text: '生产部署与升级', link: '/guide/deploy' },
+            { text: '常见问题', link: '/guide/faq' },
           ],
         },
       ],
 
       '/player/': [
         {
-          text: '核心系统',
+          text: '总览',
           collapsed: false,
           items: [
-            { text: '灵根系统', link: '/player/spiritual-root' },
-            { text: '境界一览', link: '/player/realm-list' },
-            { text: '境界突破与天劫', link: '/player/realm-breakthrough' },
-            { text: '修炼系统', link: '/player/cultivation' },
-            { text: '功法系统', link: '/player/techniques' },
-            { text: '技能系统', link: '/player/skills' },
-            { text: 'Buff 系统', link: '/player/buff-system' },
+            { text: '玩法总览与全指令表', link: '/player/' },
+            { text: '账号与角色', link: '/player/account' },
           ],
         },
         {
-          text: '战斗系统',
+          text: '修炼与成长',
           collapsed: false,
           items: [
-            { text: 'PVE 战斗与 Boss', link: '/player/pve-combat' },
-            { text: 'PVP 对战', link: '/player/pvp-combat' },
+            { text: '修炼系统', link: '/player/cultivation' },
+            { text: '境界与突破', link: '/player/realm' },
+            { text: '灵根系统', link: '/player/spiritual-root' },
+            { text: '功法系统', link: '/player/techniques' },
+            { text: '技能系统', link: '/player/skills' },
+            { text: 'Buff 系统', link: '/player/buff' },
+            { text: '称号系统', link: '/player/titles' },
             { text: '阵法系统', link: '/player/formation' },
           ],
         },
         {
-          text: '探索系统',
+          text: '战斗',
+          collapsed: false,
+          items: [
+            { text: 'PVE 战斗', link: '/player/combat' },
+            { text: 'PVP 对战', link: '/player/pvp' },
+          ],
+        },
+        {
+          text: '探索与地图',
           collapsed: false,
           items: [
             { text: '游历探索', link: '/player/exploration' },
-            { text: '游历事件一览', link: '/player/exploration-events' },
             { text: '秘境探索', link: '/player/secret-realm' },
             { text: '世界地图', link: '/player/map' },
             { text: '洞府系统', link: '/player/cave' },
@@ -63,71 +81,76 @@ export default defineConfig({
           ],
         },
         {
-          text: '养成与生产',
+          text: '物品与生产',
           collapsed: false,
           items: [
-            { text: '制造系统', link: '/player/crafting' },
+            { text: '物品系统', link: '/player/items' },
             { text: '装备与强化', link: '/player/equipment' },
-            { text: '农场系统', link: '/player/farm' },
-            { text: '称号系统', link: '/player/titles' },
-          ],
-        },
-        {
-          text: '经济系统',
-          collapsed: false,
-          items: [
-            { text: '经济与货币', link: '/player/economy' },
-            { text: '坊市交易', link: '/player/market' },
+            { text: '炼丹与锻造', link: '/player/crafting' },
+            { text: '灵田农场', link: '/player/farm' },
             { text: '能量转化', link: '/player/energy' },
           ],
         },
         {
-          text: '社交系统',
+          text: '经济',
           collapsed: false,
           items: [
-            { text: '宗门系统', link: '/player/sect' },
-            { text: '好友与聊天', link: '/player/friends' },
-            { text: '每日系统', link: '/player/daily' },
+            { text: '经济系统', link: '/player/economy' },
+            { text: '坊市交易', link: '/player/market' },
           ],
         },
         {
-          text: '游戏数据',
+          text: '社交与日常',
           collapsed: false,
           items: [
-            { text: '物品列表', link: '/player/item-list' },
-            { text: '称号列表', link: '/player/title-list' },
+            { text: '宗门系统', link: '/player/sect' },
+            { text: '社交系统', link: '/player/social' },
+            { text: '每日系统', link: '/player/daily' },
           ],
         },
       ],
 
       '/dev/': [
         {
-          text: '总览',
+          text: '入门',
           collapsed: false,
           items: [
+            { text: '开发者文档索引', link: '/dev/' },
             { text: '架构总览', link: '/dev/architecture' },
-            { text: '配置说明', link: '/dev/config' },
-            { text: '部署指南', link: '/dev/deployment' },
+            { text: '数据库设计', link: '/dev/database' },
+            { text: '内部服务 API', link: '/dev/internal-api' },
           ],
         },
         {
-          text: 'API 接口',
+          text: '对外接口',
           collapsed: false,
           items: [
             { text: 'REST API', link: '/dev/rest-api' },
             { text: 'WebSocket 协议', link: '/dev/websocket' },
-            { text: 'QQ 机器人指令', link: '/dev/qq-commands' },
+            { text: '指令框架', link: '/dev/commands' },
           ],
         },
         {
-          text: '开发指南',
+          text: '扩展开发',
           collapsed: false,
           items: [
             { text: '权限系统', link: '/dev/permissions' },
-            { text: '数据库设计', link: '/dev/database' },
-            { text: '插件开发', link: '/dev/plugin-development' },
-            { text: '适配器与外部接入', link: '/dev/adapters' },
-            { text: '内部服务 API', link: '/dev/internal-api' },
+            { text: '消息通道与适配器', link: '/dev/adapters' },
+            { text: '插件开发', link: '/dev/plugin-dev' },
+            { text: 'Web 管理控制台', link: '/dev/webadmin' },
+          ],
+        },
+      ],
+
+      '/reference/': [
+        {
+          text: '数据参考',
+          collapsed: false,
+          items: [
+            { text: '物品全表', link: '/reference/items' },
+            { text: '境界全表', link: '/reference/realms' },
+            { text: '配置项全表', link: '/reference/config-keys' },
+            { text: '数据文件与目录', link: '/reference/data-files' },
           ],
         },
       ],
@@ -159,8 +182,8 @@ export default defineConfig({
     ],
 
     footer: {
-      message: '修仙世界 © 2026',
-      copyright: '文档随服务端 V1.4.1-beta2 同步（2026-09-06）',
+      message: '修仙世界 · 服务端文档',
+      copyright: '以源码为准，随版本更新',
     },
 
     lastUpdated: {
@@ -171,15 +194,21 @@ export default defineConfig({
       },
     },
 
-    editLink: {
-      pattern: 'https://github.com/oooohhhhhhhhhh/xiuxian-wiki/edit/main/docs/:path',
-      text: '在 GitHub 上编辑此页',
-    },
-
     outline: {
       level: [2, 3],
-      label: '页面导航',
+      label: '本页导航',
     },
+
+    docFooter: {
+      prev: '上一篇',
+      next: '下一篇',
+    },
+
+    returnToTopLabel: '回到顶部',
+    sidebarMenuLabel: '目录',
+    darkModeSwitchLabel: '主题',
+    lightModeSwitchTitle: '切换到浅色模式',
+    darkModeSwitchTitle: '切换到深色模式',
   },
 
   markdown: {
