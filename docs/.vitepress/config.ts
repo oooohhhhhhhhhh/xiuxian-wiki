@@ -212,7 +212,29 @@ export default defineConfig({
   },
 
   markdown: {
-    theme: 'github-dark',
+    // 浅色 / 深色各配一套高亮主题。
+    // 原来只写单个 'github-dark'：shiki 会把深色主题的浅色字（如 #E1E4E8）
+    // 直接内联成 style="color:#E1E4E8"，而代码块背景在浅色模式下是浅灰
+    // （--vp-code-block-bg → --vp-c-bg-alt），结果浅色模式里代码几乎看不见。
+    // 写成 { light, dark } 后 shiki 输出 --shiki-light / --shiki-dark 变量，
+    // 由 vitepress 默认主题的 .vp-code span 规则按当前模式切换。
+    theme: { light: 'github-light', dark: 'github-dark' },
     lineNumbers: true,
+
+    // VitePress 原生不认 ```mermaid，默认会当成未知语言丢进普通代码块，
+    // 于是线上看到的就是一大段 mermaid 源码。
+    // 这里只把它换成一段带源码的容器，真正的画图在 theme/index.ts 里做。
+    config: (md) => {
+      const defaultFence = md.renderer.rules.fence!
+      md.renderer.rules.fence = (tokens, idx, options, env, self) => {
+        const token = tokens[idx]
+        if (/^mermaid(\s|$)/.test(token.info.trim())) {
+          // v-pre 阻止 Vue 把图里的 {{...}}（mermaid 的六边形节点语法）
+          // 当成插值表达式；内容转义后放进 <pre>，Mermaid 读取其 innerHTML 还原源码。
+          return `<pre class="mermaid" v-pre>${md.utils.escapeHtml(token.content)}</pre>\n`
+        }
+        return defaultFence(tokens, idx, options, env, self)
+      }
+    },
   },
 })

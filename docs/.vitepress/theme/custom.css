@@ -92,3 +92,30 @@
 .VPSearch {
   max-width: 320px;
 }
+
+/* ========== Mermaid 图 ========== */
+/* 渲染前这里是 <pre> 里的 mermaid 源码（JS 不可用时的兜底），
+   渲染完成后里面被替换成 <svg>。两种状态共用同一个外框，
+   避免渲染前后布局跳动太大。 */
+.vp-doc pre.mermaid {
+  margin: 20px 0;
+  padding: 16px;
+  overflow-x: auto;
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 8px;
+  background: var(--vp-c-bg-soft);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.vp-doc pre.mermaid[data-mermaid-rendered='true'] {
+  text-align: center;
+}
+
+.vp-doc pre.mermaid svg {
+  /* 不要压到容器宽度：mermaid 那边关掉了 useMaxWidth，图按原始尺寸画，
+     太宽就靠外层 pre 的 overflow-x 横向滚动，字号保持可读 */
+  max-width: none;
+  height: auto;
+  margin: 0 auto;
+}
