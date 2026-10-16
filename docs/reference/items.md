@@ -6,7 +6,7 @@
 ## 物品系统结构
 
 ```
-src/main/java/data/mtxgdn/item/          ← 114 个物品类
+src/main/java/data/mtxgdn/item/          ← 115 个 .java = 114 个物品 + 1 个抽象基类 FormationItem
 src/main/java/com/mtxgdn/game/item/
     ├── Item.java                        ← 基类（构造函数自动注册）
     ├── ItemRegistry.java                ← 注册表
@@ -132,14 +132,14 @@ Item item = ItemRegistry.resolve("spirit_stone_low"); // key
 
 ## 品质
 
-`ItemRarity` 共 6 档，`tier` 用于比较与掉落权重：
+`ItemRarity` 共 6 档。枚举里确实定义了 `tier` 字段（`getTier()`），但**当前没有任何调用方**——全仓库检索 `getTier()` 命中的全是灵根的 `SpiritualRoot.getTier()`，与物品品质无关。
 
 | 枚举 | 显示名 | tier | 物品数 |
 | --- | --- | --- | --- |
 | `COMMON` | 凡品 | 1 | 16 |
 | `UNCOMMON` | 良品 | 2 | 21 |
-| `RARE` | 珍品 | 3 | 27 |
-| `EPIC` | 仙品 | 4 | 26 |
+| `RARE` | 珍品 | 3 | 29 |
+| `EPIC` | 仙品 | 4 | 27 |
 | `LEGENDARY` | 神品 | 5 | 17 |
 | `MYTHIC` | 圣品 | 6 | 4 |
 
@@ -152,7 +152,7 @@ Item item = ItemRegistry.resolve("spirit_stone_low"); // key
 | `spirit_stone_low` | 下品灵石 | 凡品 | 1 |
 | `spirit_stone_mid` | 中品灵石 | 良品 | 1,000 |
 | `spirit_stone_high` | 上品灵石 | 珍品 | 1,000,000 |
-| `spirit_stone_supreme` | 极品灵石 | 圣品 | 1,000,000,000 |
+| `spirit_stone_supreme` | 极品灵石 | 仙品 | 1,000,000,000 |
 
 四种灵石堆叠上限都是 `999999`，都可交易。
 
@@ -160,8 +160,27 @@ Item item = ItemRegistry.resolve("spirit_stone_low"); // key
 1 中品 = 1,000 下品；1 上品 = 1,000 中品 = 1,000,000 下品；
 1 极品 = 1,000 上品 = 1,000,000,000 下品。
 
-游戏内兑换走 `/兑换` 指令（见[经济系统](/player/economy)），
-按 `EconomyService` 的兑换规则结算，可能有损耗或手续费。
+游戏内兑换走 **`/灵石兑换`**（别名 `石兑`）指令：
+
+```
+/灵石兑换 [数量] <从> <到>
+示例: /灵石兑换 1 极品 下品
+```
+
+::: warning 灵石兑换是精确 1000:1，没有损耗
+`ItemService.exchangeSpiritStones` 用 `rate = getExchangeRate(from) / getExchangeRate(to)`、
+`targetAmount = amount * rate` 计算，**不扣手续费、不产生损耗**。
+
+但它也是**单向**的：`fromGrade <= toGrade` 时直接拒绝，提示「只能将高等级灵石兑换为低等级灵石」——
+不能用它把小灵石合成大灵石（合并走的是另一条自动合并逻辑）。
+
+另外两条容易混淆的指令，**损耗在它们身上**：
+
+| 指令 | 作用 | 损耗 |
+| --- | --- | --- |
+| `/货币兑换`（`币兑`） | 金币 ↔ 下品灵石 | 汇率不对称：10 金币 → 1 下品灵石；1 下品灵石 → 5 金币 |
+| `/交换` | 物品 → 能量 | **20% 转化损耗**（只得原价 80%） |
+:::
 :::
 
 ## 全部物品
@@ -336,8 +355,7 @@ Item item = ItemRegistry.resolve("spirit_stone_low"); // key
 
 ## 境界门槛
 
-`requiredRealm` 大于 0 的物品在使用时会校验玩家境界。
-数值是**大境界 id**（对应 `realm_config.json` 的 `realm` 字段）：
+`requiredRealm` 大于 0 的物品，数值是**大境界 id**（对应 `realm_config.json` 的 `id` 字段）：
 
 | 境界 id | 境界 | 物品数（举例） |
 | --- | --- | --- |
@@ -348,11 +366,20 @@ Item item = ItemRegistry.resolve("spirit_stone_low"); // key
 | 5 | 化神期 | `qilin_amulet`、`qilin_blood`、`thunder_bolt_talisman` |
 | 10 | 金仙 | `pesticide` |
 
-::: warning 有一个数值看起来很可疑
-`pesticide`（杀虫剂）的 `requiredRealm` 是 **10**，也就是**金仙**才能用。
+::: danger `Item.getRequiredRealm()` 目前没有任何调用方
+全仓库检索 `getRequiredRealm`，命中全部来自 `Recipe` / `Skill` / `Technique` / `Title` / `SecretRealm`，
+**没有任何一处调用 `Item.getRequiredRealm()`**。
+
+也就是说：**这一列现在只是数据，不构成任何实际门槛**——玩家即使境界不够，也能持有和使用这些物品。
+下表的数值反映的是设计意图，不是运行时的真实限制。
+:::
+
+::: warning `pesticide` 的数值看起来很可疑
+`pesticide`（杀虫剂）的 `requiredRealm` 是 **10**，也就是**金仙**。
 这几乎肯定是笔误（其他农具类都是 0/1），但代码事实如此。
 
-如果你在游戏里发现杀虫剂用不了，先检查玩家的 `realm` 是否 ≥ 10。
+由于上面说的"没有任何调用方"，这个笔误目前**不会**导致杀虫剂用不了；
+但如果将来给物品加上境界校验，它会立刻变成一颗地雷。
 :::
 
 ## 探索事件与秘境
@@ -398,4 +425,14 @@ public class MyPill extends Item {
 4. 需要掉落/产出的话，去对应服务（秘境、游历、农田、炼制配方）里引用
    `ItemRegistry.resolve("my_pill")`。
 
-5. 编译重启，在 **管理后台 → 数据库 → items** 或 `/物品图鉴` 里确认出现。
+5. 编译重启，在 **管理后台 → 数据库 → items**、`/全物品列表` 或 `/物品列表` 里确认出现。
+
+::: tip 没有 `/物品图鉴` 这个指令
+`game.item.registry`（显示名「查看物品图鉴」）是一个**权限码**，不是指令名。实际可用的指令是：
+
+| 指令 | 别名 | 作用 |
+| --- | --- | --- |
+| `/全物品列表 [页数]` | `items`、`allitems` | 分页浏览全部物品（仅私聊，默认第 1 页） |
+| `/物品列表` | `itemmap` | 查看物品中文名与 key 的映射表 |
+| `/物品图鉴` | — | **不存在** |
+:::
