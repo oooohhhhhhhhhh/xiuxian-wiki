@@ -167,7 +167,7 @@ JDK 只在**构建**（`mvn package`）时需要 —— `install.bat` 也只检�
 ```bash
 XIUXIAN_MEM=-Xmx1g ./start.sh --nogui            # 或用 JAVA_OPTS 覆盖
 JAVA_OPTS="-Xms512m -Xmx2g" ./start.sh --nogui
-java -Xms512m -Xmx2g -jar main-V1.4.1-beta2.jar --nogui
+java -Xms512m -Xmx2g -jar main-0.1.0.jar --nogui
 ```
 
 ```yaml
@@ -213,7 +213,7 @@ Windows 小内存设备直接用 `start-low-memory.bat`：
 都相对**进程工作目录**解析。工作目录不是 jar 所在目录时，会出现"配置改了不生效"
 "数据库不见了"这类怪现象 —— 服务端在另一个目录新建了一套全新的库和配置。
 
-修复：`cd /opt/xiuxian && java -jar main-V1.4.1-beta2.jar --nogui`；
+修复：`cd /opt/xiuxian && java -jar main-0.1.0.jar --nogui`；
 systemd 则设置 `WorkingDirectory=/opt/xiuxian`。
 
 **结论**：务必让工作目录 = jar 所在目录。

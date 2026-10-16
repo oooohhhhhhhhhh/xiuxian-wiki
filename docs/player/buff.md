@@ -6,7 +6,7 @@ Buff 系统由 `BuffService` 统一实现，但内部其实是**三套互相独�
 
 | 文件 | 职责 |
 | --- | --- |
-| `src/main/java/com/mtxgdn/game/service/BuffService.java` | 全部 Buff 逻辑（394 行） |
+| `src/main/java/com/mtxgdn/game/service/BuffService.java` | 全部 Buff 逻辑（503 行） |
 | `src/main/java/com/mtxgdn/game/item/BuffEffect.java` | 物品触发的属性 Buff |
 | `src/main/java/com/mtxgdn/game/item/ExpMultiplierEffect.java` | 经验倍率 Buff |
 | `src/main/java/com/mtxgdn/game/item/ReflectionBuffEffect.java` | 伤害反弹 Buff |
@@ -18,7 +18,7 @@ Buff 系统由 `BuffService` 统一实现，但内部其实是**三套互相独�
 
 | 机制 | 存储 | 载体 | 过期回收 | 出现在 `/增益` | 出现在 `GET /game/buff` |
 | --- | --- | --- | --- | --- | --- |
-| 属性 Buff | `player_buffs` 表 | 丹药、符箓（`BuffEffect` 且 `durationSeconds > 0`） | 后台线程每秒扫描 | 是 | 是 |
+| 属性 Buff | `player_buffs` 表 | 丹药、符箓（`BuffEffect` 且 `durationSeconds > 0`） | 访问时即时过期 + 后台兜底每 60 秒扫一次（`buff.expire_sweep_seconds`，下限 10） | 是 | 是 |
 | 经验倍率 Buff | `EXP_BOOSTS` 内存 Map | 经验加倍丹 | 30 秒一次的惰性清理 + 读取时判定 | **否** | **否** |
 | 伤害反弹 Buff | `REFLECTION_BUFFS` 内存 Map | 反射丹 | 同上 | **否** | **否** |
 
@@ -158,19 +158,35 @@ if (spiritBonus != 0) playerService.addSpirit(conn, playerId, spiritBonus);
 
 ## 过期回收
 
-`BuffService` 的静态块启动两个后台任务（`Executors.newSingleThreadScheduledExecutor`）：
+属性 Buff 采用**「访问时即时过期」+「后台低频兜底」**两条通道：
 
 ```java
+private static final int EXPIRE_SWEEP_SECONDS =
+        Math.max(10, com.mtxgdn.util.AppConfig.getInt("buff.expire_sweep_seconds", 60));
+
 static {
-    scheduler.scheduleAtFixedRate(BuffService::checkExpiredBuffs, 1, 1, TimeUnit.SECONDS);
+    // 首个 tick 延迟 30 秒，避开数据库初始化与启动高峰
+    scheduler.scheduleAtFixedRate(() -> {
+        try { checkExpiredBuffs(); } catch (Throwable t) { LOG.warn("增益过期兜底回收任务异常: " + t); }
+    }, 30, EXPIRE_SWEEP_SECONDS, TimeUnit.SECONDS);
+
     scheduler.scheduleAtFixedRate(BuffService::cleanupExpiredMemoryBuffs, 30, 30, TimeUnit.SECONDS);
 }
 ```
 
 | 任务 | 首次延迟 | 周期 | 行为 |
 | --- | --- | --- | --- |
-| `checkExpiredBuffs` | 1 秒 | 1 秒 | 查出 `expire_time <= now` 的行 → 事务内逐项反向扣属性 → `DELETE FROM player_buffs WHERE expire_time <= ?` |
+| `expirePlayerBuffs`（惰性） | — | 每次访问 | 玩家读取或操作 Buff 时，在业务事务内即时结算该玩家已过期的行 |
+| `checkExpiredBuffs`（兜底） | 30 秒 | **`buff.expire_sweep_seconds`，默认 60 秒、下限 10 秒** | 查出 `expire_time <= now` 的行 → 事务内逐项反向扣属性 → `DELETE FROM player_buffs WHERE expire_time <= ?` |
 | `cleanupExpiredMemoryBuffs` | 30 秒 | 30 秒 | 清理 `EXP_BOOSTS` / `REFLECTION_BUFFS` 中已过期的条目 |
+
+::: tip 为什么还需要兜底任务
+增益加成是**物化在 `players` 表上的**（加成直接写进了玩家属性）。玩家离线后不会再访问 Buff，惰性过期就没有触发点，属性会一直虚高，所以必须保留一条与玩家行为无关的低频通道。
+
+但代价不应与表总量相关：配合 `idx_player_buffs_expire` 索引（`player_buffs(expire_time)`），单次代价只与"已过期的行数"相关。原实现是**每秒**执行一次 `WHERE expire_time <= ?` 的全表扫描，本改造把它降到默认 60 秒一次，活跃玩家则完全由访问时的惰性过期即时处理。
+:::
+
+调度器是**守护线程**（线程名 `buff-expire-sweeper`，`setDaemon(true)`），不会阻止 JVM 退出；需要显式关闭时调 `BuffService.shutdownScheduler()`。
 
 内存 Buff 即使没被清理线程扫到，读取时也会判定过期并顺手移除：
 

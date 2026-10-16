@@ -234,7 +234,7 @@ YAML 里请写 `true` / `false`，不要写 `yes` / `no` / `1` / `0`。
 ```ini
 [Service]
 WorkingDirectory=/opt/xiuxian
-ExecStart=/usr/bin/java -jar /opt/xiuxian/main-V1.4.1-beta2.jar
+ExecStart=/usr/bin/java -jar /opt/xiuxian/main-0.1.0.jar
 ```
 
 不设的话 `data/`、`log/`、`xiuxian.db` 会落到 `/`（或 systemd 的默认目录），

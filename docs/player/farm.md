@@ -1,6 +1,6 @@
 # 灵田（种田系统）
 
-灵田是异步挂机玩法：买种子 → 种下 → 等生长 → 浇水施肥 → 收获作物。生长由服务端**每秒 tick** 的调度任务推进，玩家离线也会继续生长。实现位于 `src/main/java/com/mtxgdn/game/service/FarmService.java`（942 行），配置在 `game/entity/CropConfig.java`、`game/entity/FarmPlot.java`，QQ 入口为 `src/main/java/com/mtxgdn/onebot/command/farm/FarmCommand.java`。
+灵田是异步挂机玩法：买种子 → 种下 → 等生长 → 浇水施肥 → 收获作物。生长**没有后台定时任务**——服务端在玩家访问农田时按 `settled_time` 到当前时刻的时间差一次性结算，因此玩家离线期间作物照常生长。实现位于 `src/main/java/com/mtxgdn/game/service/FarmService.java`（1008 行），配置在 `game/entity/CropConfig.java`、`game/entity/FarmPlot.java`，QQ 入口为 `src/main/java/com/mtxgdn/onebot/command/farm/FarmCommand.java`。
 
 ## 指令与子命令
 
@@ -128,35 +128,41 @@ long harvestTime = now + (long) adjustedGrowthSeconds * 1000;
 
 ## 生长阶段与时间
 
-### 每秒 tick
+### 惰性结算（无后台推进线程）
+
+农田**没有**定时任务。生长状态改由 `settlePlayerPlots(conn, playerId, now)` 在玩家真正访问农田时按时间差一次性结算：
 
 ```java
-private static final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
-
-static {
-    scheduler.scheduleAtFixedRate(FarmService::updateAllPlots, 1, 1, TimeUnit.SECONDS);
+private void settlePlayerPlots(Connection conn, long playerId, long now) {
+    if (!BuiltInPluginRegistry.getInstance().isEnabledOrUnknown("farm")) return;
+    // 只查该玩家自己的地块，不是全表
+    String sql = "SELECT * FROM farm_plots WHERE player_id = ? AND state IN ('PLANTED', 'GROWING')";
+    ...
 }
 ```
 
 | 项 | 内容 |
 | --- | --- |
-| 调度器 | 单线程 `ScheduledExecutorService`（**非守护线程**，需 `FarmService.shutdownScheduler()` 显式关闭） |
-| 首次延迟 / 周期 | 1 秒 / 1 秒 |
-| 模块门控 | `BuiltInPluginRegistry.getInstance().isEnabledOrUnknown("farm")` 为假时**直接跳过整轮结算**（农场模块停用则生长暂停） |
-| 扫描范围 | `SELECT * FROM farm_plots WHERE state IN ('PLANTED', 'GROWING')` |
+| 触发方式 | 惰性：`/种田` 查看、浇水、施肥、种植、收获、清理等**每个入口**都在业务事务内先调一次结算 |
+| 结算基准 | `since = max(planted_time, settled_time)`，实际流逝 `elapsedSeconds = (now - since) / 1000` |
+| 幂等性 | 结算后立刻把 `settled_time` 推进到 `now`，同一区间不会重复计算；同一秒内重复访问因 `elapsedSeconds <= 0` 直接返回，不产生任何写入 |
+| 时钟回拨保护 | 基准点晚于 `now` 时按 `now` 处理，绝不产生"负流逝"导致水分回升 |
+| 模块门控 | `BuiltInPluginRegistry.getInstance().isEnabledOrUnknown("farm")` 为假时**整个结算直接返回**（农场模块停用则生长暂停） |
+| 查询范围 | 只查该玩家自己的地块（`WHERE player_id = ?`），**不再是全表扫描** |
+| 事务 | 与调用方的业务写入共用同一个 `Connection`，结算与操作同事务提交 |
 
-::: danger 每秒全表扫描
-`updateAllPlots` 每 1 秒查询一次**所有玩家**处于 `PLANTED`/`GROWING` 的地块，逐块写库。地块总量随玩家数线性增长，且 `farm_plots` 上只有 `player_id` 外键、没有 `state` 索引。这是本系统最主要的数据库压力来源。
+::: tip 为什么这样改
+早期实现用 `scheduleAtFixedRate(updateAllPlots, 1, 1, SECONDS)` 每秒扫描**所有玩家**处于 `PLANTED`/`GROWING` 的地块并逐块写库。地块总量随玩家数线性增长，而 `farm_plots` 上只有 `player_id` 外键、没有 `state` 索引，因此这是全系统最主要的数据库压力来源。改为惰性结算后，开销只落在"真正在玩农田的玩家"身上，且天然按玩家分片。
 :::
 
-### 每 tick 的状态推进
+### 结算的状态推进
 
-`updatePlotState(plot, now)` 的顺序：
+`settlePlot(conn, plot, now)` 的顺序：
 
-1. **扣水**：`newWater = max(0, round(water_level - 0.1))`——即每秒 -0.1%（`WATER_DECREASE_PER_SECOND = 0.1`）。源码注释："约 17 分钟才能从满水降到枯萎线"。
-2. **水为 0** → 置 `WILTED`（写入 `wilted_time`，已有值则保留首次时间）并返回。
-3. **已到收获时间**（`now >= harvest_time`）→ 判定品质并置 `READY`（`growth_stage = stages`、`wilted_time = 0`）。
-4. **否则**：先做病虫害检测（`checkPestAttack`），再算阶段：
+1. **水分衰减**：按实际流逝时间一次算清，`newWater = max(1, round(water - 0.1 × elapsedSeconds))`（`WATER_DECREASE_PER_SECOND = 0.1`，即每秒 -0.1%）。源码注释："约 17 分钟才能从满水降到枯萎线"。
+2. **跨过枯萎线**（`elapsedSeconds >= ceil(water / 0.1)`）→ 置 `WILTED`，并把 `wilted_time` 写成**精确穿零点** `since + secondsToDry × 1000`，而不是结算时刻；离线再久枯萎时间也不会被推后。
+3. **已到收获时间**（`now >= harvest_time`）→ 判定品质并置 `READY`（`growth_stage = stages`、`wilted_time = 0`）。注意顺序：品质必须在改写水分**之前**掷定——`determineQuality` 会按水分高低计分（≥80 加 15 分），先降水分再掷会让卡在阈值上的地块凭空掉一档品质。
+4. **否则**：先做病虫害结算（`settlePest`），再算阶段：
 
 ```java
 long elapsed = now - plot.getPlantedTime();
@@ -172,8 +178,8 @@ stage = Math.min(stage, config.getStages());
 | 状态 | 中文 | 进入条件 |
 | --- | --- | --- |
 | `EMPTY` | 空地 | 初始化 / `resetPlot`（收获或清理后） |
-| `PLANTED` | 已种植 | 刚种下（首个 tick 会转为 `GROWING`） |
-| `GROWING` | 生长中 | 每 tick 推进 |
+| `PLANTED` | 已种植 | 刚种下（首次结算会转为 `GROWING`） |
+| `GROWING` | 生长中 | 每次结算按时间差推进 |
 | `READY` | 可收获 | `now >= harvest_time` |
 | `WILTED` | 枯萎 | `water_level` 降到 0 |
 
@@ -186,7 +192,7 @@ stage = Math.min(stage, config.getStages());
 - 枯萎后 6 小时内可以浇水复活：`state = 'GROWING'`、`water_level = 50`、`wilted_time = 0`，提示"浇水成功！枯萎作物已恢复，水分: 50%"。
 - 超过 6 小时：`(now - wiltedTime) / 1000 > 6*3600` → "作物已枯萎过久，无法恢复，请清理地块重新种植"。
 - 源码注释说明 6 小时是从 1 小时放宽的："给予玩家恢复机会"。
-- 注意：枯萎的地块**不再被 tick 扫描**（`state IN ('PLANTED','GROWING')`），所以枯萎后时间静止，只是 `wilted_time` 在流逝。
+- 注意：枯萎的地块**不再进入结算查询**（`state IN ('PLANTED','GROWING')`），所以枯萎后时间静止，只是 `wilted_time` 在流逝。
 
 ## 浇水
 
@@ -330,12 +336,14 @@ private static void checkPestAttack(FarmPlot plot, long now) {
 | 机制 | 内容 |
 | --- | --- |
 | 免疫期 | 种植后 **5 分钟**（300000ms）内不会发生病虫害 |
-| 发生概率 | 每 tick `0.02 / 60 ≈ 0.033%`，按 1 秒 tick 折算**约每小时 2%** |
+| 发生概率 | 基准 `PEST_CHANCE_PER_HOUR = 0.02`（约每小时 2%）。结算时把"每秒掷一次骰子"折算成区间累计概率一次算清：`chance = 1 - (1 - 0.02/60)^暴露秒数`；暴露秒数从 `max(since, planted_time + 5 分钟)` 起算 |
 | 首次病害类型 | **70% 概率 `MILD`（轻度虫害）**，30% 概率 `DISEASE`（病害） |
 | 恶化 | 非健康状态下，**距 `pest_time` 超过 30 分钟**则升级：`MILD` 或 `DISEASE` → `SEVERE`（严重虫害）；已是 `SEVERE` 则不再变化 |
 
-::: warning 恶化的检查依赖地块被 tick 扫描
-`checkPestAttack` 只在 `updatePlotState` 中被调用，而该函数只处理 `PLANTED`/`GROWING` 地块。作物一旦 `READY` 或 `WILTED`，病虫害状态就冻结不再恶化——但**已有的惩罚仍会在收获时生效**。
+::: warning 恶化的检查依赖地块被结算
+`settlePest` 只在结算 `PLANTED`/`GROWING` 地块时被调用。作物一旦 `READY` 或 `WILTED`，病虫害状态就冻结不再恶化——但**已有的惩罚仍会在收获时生效**。
+
+另外，病虫害只在玩家**访问农田**时才推进。长期不上线的玩家，其地块的病害恶化会在下次访问时按 `now - pest_time > 30 分钟` 一次性判定。
 :::
 
 ### 杀虫剂
@@ -419,11 +427,12 @@ private static void checkPestAttack(FarmPlot plot, long now) {
 | `pest_state` | `VARCHAR(16) DEFAULT 'CLEAN'` | **仅迁移** | 病虫害状态 |
 | `pest_time` | `BIGINT DEFAULT 0` | **仅迁移** | 病虫害发生/恶化时间 |
 | `crop_quality` | `VARCHAR(16)` | **仅迁移** | 收获品质（`NULL` 表示未判定） |
+| `settled_time` | `BIGINT DEFAULT 0` | 建表 | 最后一次惰性结算时刻（毫秒）。水分衰减与病虫害都按 `now - settled_time` 折算 |
 
-::: danger `farm_plots` 缺少关键约束与索引
+::: warning `farm_plots` 的约束与索引现状
 - 没有 `UNIQUE (player_id, plot_index)`：并发扩建可能产生重复索引地块。
-- 没有 `state` 索引：而每秒 tick 都要 `WHERE state IN ('PLANTED','GROWING')` 全表扫描。
-- 后 5 个字段只能靠 `ALTER TABLE` 迁移补上；若迁移在旧库上失败，`mapPlot` 会在 `rs.getString("pest_state")` 处抛异常。
+- 没有 `state` 索引。改为惰性结算后查询已收窄为 `WHERE player_id = ? AND state IN ('PLANTED','GROWING')`，命中 `player_id` 外键，**不再是全表扫描**。
+- `root_bonus`、`season_modifier`、`pest_state`、`pest_time`、`crop_quality` 这 5 个字段只能靠 `ALTER TABLE` 迁移补上；若迁移在旧库上失败，`mapPlot` 会在 `rs.getString("pest_state")` 处抛异常。
 :::
 
 ## 输出格式
@@ -444,10 +453,10 @@ private static void checkPestAttack(FarmPlot plot, long now) {
 | 现象 | 原因 |
 | --- | --- |
 | 种植报"地块已被占用" | 目标地块非 `EMPTY`，需先收获或 `/种田 清理` |
-| 作物突然枯萎 | 水分每秒 -0.1%，约 17 分钟从满水归零；枯萎 6 小时内浇水可复活 |
+| 作物突然枯萎 | 水分每秒 -0.1%，约 17 分钟从满水归零；枯萎 6 小时内浇水可复活。枯萎时刻按精确穿零点记录，离线再久也不会被推后 |
 | 收获产量低于预期 | 水分/肥力不足、有病虫害、或品质判定为 `COMMON` |
 | 施肥后肥力显示未满 | 单次只加 25/40/60，上限 100；满了会提示"肥力已充足" |
 | 一键施肥报"X不足，需要 N 个" | 一键施肥要求肥料数量 ≥ 需要施肥的地块数，**不做部分施肥** |
 | 扩建花钱了但地块没增加 | 并发扩建可能撞同一 `plot_index`（表无唯一约束），或金币校验在事务外 |
 | 收获后肥力清零 | `resetPlot` 会把肥力重置为 0，需重新施肥 |
-| 服务器重启后作物仍在生长 | 生长完全基于 `planted_time`/`harvest_time` 时间戳，与在线状态无关 |
+| 服务器重启后作物仍在生长 | 生长完全基于 `planted_time`/`settled_time`/`harvest_time` 时间戳惰性推导，与在线状态、重启次数都无关 |

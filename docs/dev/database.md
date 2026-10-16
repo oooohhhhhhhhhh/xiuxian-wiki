@@ -11,11 +11,21 @@
 DatabaseManager.initTable()
     │
     ├─ 1. 建表          CREATE TABLE IF NOT EXISTS ...     ← 43 张表，逐条执行
-    ├─ 2. 建索引        CREATE INDEX IF NOT EXISTS ...      ← 幂等
-    ├─ 3. 迁移          DatabaseMigration.executeMigrations(conn)
+    ├─ 2. 迁移          DatabaseMigration.executeMigrations(conn)
     │                      ALTER TABLE ... ADD COLUMN ...   ← 捕获"已存在"异常
+    │                      （另有 2 张表由迁移创建：player_buffs、farm_plots）
+    ├─ 3. 建索引        CREATE INDEX IF NOT EXISTS ...      ← 幂等，共 4 条
     └─ 4. 初始化权限数据  PermissionService.initDefaultData()
 ```
+
+::: danger 索引必须在迁移之后创建
+顺序不能颠倒。老库的 `trade_listings` 没有 `expires_at` 列，该列是由 `executeMigrations` 里的
+`ALTER TABLE` 补上的；如果索引先于迁移执行，任何"升级上来的库"都会在启动时直接抛
+`no such column: expires_at` —— 表建好了、服务却起不来。
+
+建表用的是 `CREATE TABLE IF NOT EXISTS`，对老库是空操作，真正补列的是迁移，
+所以"先迁移、后建索引"才是唯一正确的顺序。回归测试：`LegacySchemaUpgradeTest`。
+:::
 
 ::: danger 写迁移必须幂等
 老库和新库走的是**同一套语句**，且**每次启动**都会执行。
@@ -64,7 +74,7 @@ private void addTradeListingsExpiresAtColumn(Connection conn) {
 
 ## 数据表总览
 
-共 **43 张表**，按领域分组如下。
+共 **45 张表**，按领域分组如下：`DatabaseManager.initTable()` 逐条执行 **43** 条 `CREATE TABLE IF NOT EXISTS`，另有 **2** 张（`player_buffs`、`farm_plots`）由 `DatabaseMigration` 创建。
 
 ### 账号与鉴权
 
@@ -168,11 +178,13 @@ QQ 官方平台下发的是 **openid**，与真实 QQ 号不是同一身份体�
 
 | 表 | 用途 | 关键字段 |
 | --- | --- | --- |
-| `map_locations` | 地图地点 | `id`(手工指定)、`name`、`region`、`min_realm`、`is_safe_zone` |
+| `map_locations` | 地图地点 | `id`(手工指定)、`name`、`description`、`region`、`min_realm`、`is_safe_zone`、`cultivation_bonus`、`exploration_bonus`、`danger_level`(0~4)、`is_wilderness`、`expires_at`、`entry_location_id` |
 | `map_connections` | 地点连接 | `from_location_id`、`to_location_id`、`travel_time_seconds`(默认 5) |
 | `caves` | 洞府 | `(player_id)` 唯一、`level`、`spirit_energy`、`max_spirit_energy`、`cultivation_bonus`、`last_collect_time` |
 | `formations` | 阵法 | `formation_key`、`level`、`spirit_energy_boost`、`cultivation_bonus`、`defense_bonus`、`heart_demon_resist`、`expires_at`、`active` |
-| `farm_plots` | 灵田地块 | `(player_id, plot_index)`、`state`、`seed_key`、`crop_key`、`planted_time`、`harvest_time`、`growth_stage`、`water_level`、`fertilizer_level` |
+| `farm_plots` | 灵田地块 | `(player_id, plot_index)`、`state`、`seed_key`、`crop_key`、`planted_time`、`harvest_time`、`growth_stage`、`water_level`、`fertilizer_level`、`wilted_time`、`yield`、`settled_time`、`root_bonus`、`season_modifier`、`pest_state`、`pest_time`、`crop_quality` |
+| `player_map_exploration` | 玩家探索记录 | `(player_id, location_id)` 唯一、`first_visited_at`；只记"首次"，重复到达不写 |
+| `map_location_event_bias` | 地界 → 探索事件权重偏置 | `(location_id, event_key)` 唯一、`weight_multiplier`；让"落霞山产落霞草"这类地点描述真正作用于事件抽取 |
 | `player_daily` | 每日计数 | `player_id`(主键)、`last_morning_cultivation`、`consecutive_days`、`exploration_count`、`battle_count`、`secret_realm_count`、`pvp_count` 等 |
 
 ### 日志
@@ -181,13 +193,18 @@ QQ 官方平台下发的是 **openid**，与真实 QQ 号不是同一身份体�
 | --- | --- | --- |
 | `player_action_logs` | 玩家行为审计 | `user_id`、`player_name`、`action`、`detail`、`qq_number` |
 
+::: warning `map_wilderness_resources` 已废弃
+野外资源改为**文件存储**（每个分片一个 JSON，见 `com.mtxgdn.game.map.WildernessChunkStore`），`DatabaseManager` 已不再创建该表。表定义仍保留在 `DatabaseSchema` 里以便追溯，已存在的库会留下一张空表——无害，且刻意不去 `DROP`（删库的风险远大于留一张空表）。
+:::
+
 ## 索引
 
 | 索引 | 表 | 列 | 覆盖的查询 |
 | --- | --- | --- | --- |
 | `idx_trade_price_item_time` | `trade_price_history` | `(item_key, sold_at)` | 行情查询（按物品+时间） |
 | `idx_trade_listings_status_expires` | `trade_listings` | `(status, expires_at)` | 到期回收任务、在售筛选 |
-| `idx_trade_listings_seller_status` | `trade_listings` | `(seller_player_id, status)` | `/我的上架` |
+| `idx_trade_listings_seller_status` | `trade_listings` | `(seller_player_id, status)` | `/我的挂单` |
+| `idx_player_buffs_expire` | `player_buffs` | `(expire_time)` | Buff 过期兜底回收任务（见 [Buff 系统](/player/buff)）；有了它，单次代价只与"已过期的行数"相关 |
 | `idx_chat_channel` | `chat_messages` | `(channel)` | 世界频道拉取（仅 MySQL） |
 | `idx_chat_receiver` | `chat_messages` | `(receiver_player_id)` | 私聊拉取（仅 MySQL） |
 

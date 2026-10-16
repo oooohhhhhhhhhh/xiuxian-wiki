@@ -18,7 +18,7 @@
 ```bash
 cd /opt/xiuxian
 java -Xms512m -Xmx2g -Dfile.encoding=UTF-8 -Dsun.jnu.encoding=UTF-8 \
-     -jar main-V1.4.1-beta2.jar --nogui
+     -jar main-0.1.0.jar --nogui
 ```
 
 ::: danger 工作目录 ≠ JAR 目录会踩大坑
@@ -110,8 +110,8 @@ mysqldump -uroot -p xiuxian > xiuxian-$(date +%F).sql   # MySQL
 
 ```bash
 mv main-旧版本.jar main-旧版本.jar.rollback   # 旧 jar 留档，不要删
-cp /tmp/main-V1.4.1-beta2.jar .
-java -Xms512m -Xmx2g -jar main-V1.4.1-beta2.jar --nogui
+cp /tmp/main-0.1.0.jar .
+java -Xms512m -Xmx2g -jar main-0.1.0.jar --nogui
 ```
 
 `config/`、`data/`、`plugins/` 不在 jar 里，是运行期数据，替换时原地保留。

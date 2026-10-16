@@ -9,9 +9,12 @@
 | 磁盘 | 约 100 MB（含 jar 与数据库） |
 | 端口 | `8080`（HTTP/管理后台）、`25565`（MOTD 预览），以及 OneBot/Minecraft 通道各自的端口 |
 
-::: warning 必须是 JDK，不是 JRE
-服务端在 Java 23 上编译。用更低版本的 Java 启动会直接报
-`UnsupportedClassVersionError`。
+::: warning 运行需要 Java 23+（构建才需要 JDK）
+**运行**只需 Java 23 或更高的 JRE —— 构建产物是 shaded 可执行 jar。
+**构建**（`install.bat` / `install.sh` 首次运行，或手动 `mvnw package`）才需要 JDK 23+。
+用更低版本的 Java 启动会直接报 `UnsupportedClassVersionError`。
+
+`install.bat` / `install.sh` 只解析 `java -version` 的主版本号是否 ≥ 23，不区分 JDK 与 JRE。
 :::
 
 ## 方式一：一键脚本（推荐）
@@ -48,7 +51,7 @@ start-low-memory.bat
 日常启动用 `start.sh`：
 
 ```bash
-./start.sh                          # 默认 JVM 参数
+./start.sh                          # 默认 JVM 参数（需 jar 位于 target/ 下）
 ./start.sh --nogui                  # 无交互模式
 ./start.sh /path/to/main-*.jar      # 指定 jar
 XIUXIAN_MEM=-Xmx256m ./start.sh     # 低内存
@@ -56,6 +59,14 @@ JAVA_OPTS="-Xmx1g" ./start.sh       # 自定义 JVM 参数
 ```
 
 `start.sh` 的默认 JVM 参数是 `-Xms128m -Xmx512m`，编码强制 UTF-8。
+
+::: warning `start.sh` 只在 `target/` 下找 jar
+脚本会先 `cd` 到自身所在目录，然后在 **`target/main-*.jar`** 里通配匹配（排除 `original-*`）。
+因此**开发检出目录**里直接 `./start.sh` 可用，但把 jar 部署到 `/opt/xiuxian` 之后
+`./start.sh` 会以「未找到可执行 jar」退出 —— 部署场景请显式传路径：
+`./start.sh /opt/xiuxian/main-0.1.0.jar`，或用 `java -jar` 直接启动。
+（`install.sh` 另有当前目录兜底，`start.sh` 没有。）
+:::
 
 ::: tip 一定要在 jar 所在目录启动
 数据库文件、`config/`、`data/`、`log/` 等**相对路径**都相对于**进程工作目录**解析。
@@ -71,13 +82,13 @@ mvn clean package -DskipTests
 产物：
 
 ```
-target/main-V1.4.1-beta2.jar
+target/main-0.1.0.jar
 ```
 
 这是一个 shaded 可执行 jar（`Main-Class: com.mtxgdn.Main`），直接运行即可：
 
 ```bash
-java -Xms128m -Xmx512m -Dfile.encoding=UTF-8 -jar target/main-V1.4.1-beta2.jar
+java -Xms128m -Xmx512m -Dfile.encoding=UTF-8 -jar target/main-0.1.0.jar
 ```
 
 ::: tip 构建环境
@@ -93,7 +104,9 @@ JAVA_HOME=/path/to/jdk-23 mvn clean package -DskipTests
 | 参数 | 作用 |
 | --- | --- |
 | `--nogui` | 无交互模式：不启动控制台交互界面，适合 systemd / 后台运行 |
-| `--demo` | 演示模式：启动后打印演示信息并退出，用于快速验证环境 |
+| `--demo` | 演示模式：服务就绪后进入**交互式** `DemoClient` 主循环，供你手动走一遍登录/游玩流程；需主动退出才会停服 |
+| `--plugin-make` | 生成插件脚手架后退出（不启动服务端） |
+| `--plugin-make-gui` | 打开插件脚手架 GUI 后退出（不启动服务端） |
 | （无参数） | 交互模式：提供控制台命令界面 |
 
 ## 首次启动：安装向导
@@ -178,7 +191,7 @@ rm config/.installed
 
 ```
 <jar 所在目录>/
-├── main-V1.4.1-beta2.jar
+├── main-0.1.0.jar
 ├── config/
 │   ├── application.yml          ← 自动从 jar 释放
 │   ├── plugins.yml              ← 插件开关

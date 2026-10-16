@@ -9,11 +9,11 @@
 
 | 项目 | 值 |
 | --- | --- |
-| 版本 | `V1.4.1-beta2`（见 `pom.xml` 的 `<version>`） |
-| 构建产物 | `target/main-V1.4.1-beta2.jar`（shaded 可执行 jar，`Main-Class: com.mtxgdn.Main`） |
+| 版本 | `0.1.0`（对外展示为 `v0.1.0`）。唯一来源是 `pom.xml` 的 `<version>`：构建时经资源过滤写入 `build-info.properties`，运行期由 `com.mtxgdn.util.BuildInfo` 读取；JAR 清单的 `Implementation-Version` 作为兜底 |
+| 构建产物 | `target/main-0.1.0.jar`（shaded 可执行 jar，`Main-Class: com.mtxgdn.Main`） |
 | 入口类 | `com.mtxgdn.Main` |
-| 默认监听 | `127.0.0.1:8080`（HTTP / REST / WebSocket / 管理台）、`0.0.0.0:6700/onebot`（OneBot 通道）、`25565`（MOTD 预览） |
-| 默认数据库 | SQLite，文件为 jar 同目录下的 `xiuxian.db` |
+| 默认监听 | `127.0.0.1:8080`（HTTP / REST / WebSocket / 管理台）、`0.0.0.0:6700/onebot`（OneBot 通道）、`0.0.0.0:25565`（MOTD 预览，**监听所有网卡**） |
+| 默认数据库 | SQLite，文件为**进程工作目录**下的 `xiuxian.db`（不是 jar 目录，详见下方「路径基准」） |
 | 许可 | MIT |
 
 ::: tip 三条贯穿全局的设计约定
