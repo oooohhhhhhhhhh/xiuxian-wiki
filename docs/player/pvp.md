@@ -64,6 +64,10 @@ public CombatResult createChallenge(long challengerPlayerId, long targetPlayerId
     if (challenger.getHp() <= 0) return CombatResult.failure("你的生命值不足，无法发起挑战");
     if (target.getHp() <= 0) return CombatResult.failure("对手已阵亡，无法挑战");
 
+    // 安全区禁止私斗（放在每日次数校验之前，避免被安全区拦下还白扣一次挑战次数）
+    String safeZoneError = checkSafeZone(challengerPlayerId, targetPlayerId);
+    if (safeZoneError != null) return CombatResult.failure(safeZoneError);
+
     if (!canParticipatePvp(challengerPlayerId)) {
         return CombatResult.failure("今日切磋次数已用完（每天最多 " + DAILY_PVP_LIMIT + " 次），明日再来吧");
     }
@@ -81,12 +85,17 @@ public CombatResult createChallenge(long challengerPlayerId, long targetPlayerId
 | 3 | 不是自己 | `不能挑战自己` |
 | 4 | 挑战者 `hp > 0` | `你的生命值不足，无法发起挑战` |
 | 5 | 目标 `hp > 0` | `对手已阵亡，无法挑战` |
-| 6 | 今日次数 < 10 | `今日切磋次数已用完（每天最多 10 次），明日再来吧` |
-| 7 | **立即扣 1 次** | — |
-| 8 | 目标没有未超时的待处理挑战 | `【X】正在被他人挑战中，稍后再试` |
-| 9 | 自己也没有未超时的待处理挑战 | `你已向【X】发起了挑战，等待对方回应中` |
+| 6 | **双方都不在安全区** | `【X】乃安全区，城中禁止私斗，请先离开此地再切磋` / `对方身处安全区【X】，无法对其发起挑战` |
+| 7 | 今日次数 < 10 | `今日切磋次数已用完（每天最多 10 次），明日再来吧` |
+| 8 | **立即扣 1 次** | — |
+| 9 | 目标没有未超时的待处理挑战 | `【X】正在被他人挑战中，稍后再试` |
+| 10 | 自己也没有未超时的待处理挑战 | `你已向【X】发起了挑战，等待对方回应中` |
 
-::: warning 第 7 步先于第 8/9 步
+::: tip 安全区校验刻意排在次数校验之前
+`checkSafeZone` 在 `canParticipatePvp` 之前执行，因此被安全区拦下**不会白扣一次挑战次数**。源码注释："放在每日次数校验之前，避免被安全区拦下还白扣一次挑战次数"。
+:::
+
+::: warning 第 8 步先于第 9/10 步
 次数在挂起检查之前就被扣掉了。因此"目标正在被别人挑战"或"自己已有挂起挑战"这类失败，**同样会消耗挑战者的当日次数**。
 :::
 
@@ -228,6 +237,67 @@ if (reflectPercent > 0 && damage > 0) {
 
 双方在第 0 回合各自自动运转全部 `skillType == 2` 的技能（如金刚护体），减伤 = `min(30, 蓝耗 × 50 / 100)`，取最大值。
 
+## 安全区与险地
+
+PK 的**准入**与**收益**由两个互相独立的字段控制：`is_safe_zone` 决定「能不能打」，`danger_level` 决定「赢了能抢多少」。
+
+### 安全区禁止私斗
+
+任一方身处 `is_safe_zone` 的地点，切磋即被拒绝：
+
+```java
+private String checkSafeZone(long challengerPlayerId, long targetPlayerId) {
+    MapLocation challengerZone = mapService.getLocation(mapService.getPlayerLocationId(challengerPlayerId));
+    if (challengerZone != null && challengerZone.isSafeZone()) {
+        return "【" + challengerZone.getName() + "】乃安全区，城中禁止私斗，请先离开此地再切磋";
+    }
+    MapLocation targetZone = mapService.getLocation(mapService.getPlayerLocationId(targetPlayerId));
+    if (targetZone != null && targetZone.isSafeZone()) {
+        return "对方身处安全区【" + targetZone.getName() + "】，无法对其发起挑战";
+    }
+    return null;
+}
+```
+
+| 项目 | 说明 |
+| --- | --- |
+| 判定依据 | **只看 `is_safe_zone`**，与危险度无关 |
+| 覆盖路径 | `/挑战` 发起、`/挑战` 接受、`/决斗` 等全部 4 条 PVP 入口都会校验 |
+| 出厂安全区 | 青云村、苍月镇、太虚城、天机阁（这 4 地的危险度也都是 0） |
+
+::: tip 为什么两个字段要分离
+危险度决定"赢了能抢多少"，安全区决定"能不能打"。分开判定，管理员即使把某地危险度误填成 0，也不会意外开放 PK。
+
+历史上 🛡 标记**只是展示、并未真正生效**；现在它已真正拦截私斗。
+:::
+
+### 险地 PK 掠夺
+
+危险度 ≥3（高危 / 极危）的地点，胜者夺走败者的灵石：
+
+```java
+/** 险地掠夺的最低危险度：危险度 ≥3（高危 / 极危）才算"险地"。 */
+private static final int PK_LOOT_MIN_DANGER = 3;
+/** 险地掠夺比例：每 1 级危险度夺走败者 5% 灵石（危险度 3 → 15%，4 → 20%）。 */
+private static final double PK_LOOT_RATIO_PER_DANGER = 0.05;
+```
+
+| 危险度 | 掠夺比例 |
+| --- | --- |
+| 0~2 | 0（不掠夺） |
+| 3 高危 | 15% |
+| 4 极危 | 20% |
+
+实现要点：
+
+| 项 | 说明 |
+| --- | --- |
+| 计算式 | `loot = max(1, round(败者灵石 × 0.05 × 危险度))` |
+| 防并发造币 | 以 `removeSpiritStones` 的**返回值**为准，只有真正扣成功才发放 |
+| 门槛为何设在 3 | 让 PK 收益只存在于真正的凶地——否则全图都会变成猎杀场，低危地带也会被大号堵门 |
+| 适用范围 | `/挑战` 与 `/决斗` 共用 `executePvp`，因此掠夺对两者都生效 |
+| 战报文案 | 结算时输出 `☠ {危险度名称}之地，……` |
+
 ## 奖励与惩罚
 
 ### 胜利方
@@ -259,7 +329,9 @@ private long calculateExpReward(Player winner, Player loser, boolean challengerW
 
 ### 战败方
 
-**没有任何额外惩罚**：不掉经验、不掉金币、不掉物品。唯一的后果是 HP/MP 被写成战斗结束时的真实值（可能为 0 → 重伤），以及当日 PVP 次数已消耗。
+在**安全区与低危地点（危险度 0~2）没有任何额外惩罚**：不掉经验、不掉金币、不掉物品。后果只有 HP/MP 被写成战斗结束时的真实值（可能为 0 → 重伤），以及当日 PVP 次数已消耗。
+
+但在**险地（危险度 ≥3）**，败者会被胜者夺走 `5% × 危险度` 的灵石（高危 15%、极危 20%），详见上文[险地 PK 掠夺](#险地-pk-掠夺)。
 
 ### 战后共同处理
 
