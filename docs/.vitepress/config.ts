@@ -16,8 +16,8 @@ export default defineConfig({
       {
         text: '链接',
         items: [
-          { text: 'GitHub 仓库', link: 'https://github.com/oooohhhhhhhhhh/xiuxian-server-alpha' },
-          { text: '问题反馈', link: 'https://github.com/oooohhhhhhhhhh/xiuxian-server-alpha/issues' },
+          { text: 'GitHub 仓库', link: 'https://github.com/oooohhhhhhhhhh/xiuxian-server' },
+          { text: '问题反馈', link: 'https://github.com/oooohhhhhhhhhh/xiuxian-server/issues' },
         ],
       },
     ],
@@ -178,7 +178,7 @@ export default defineConfig({
     },
 
     socialLinks: [
-      { icon: 'github', link: 'https://github.com/oooohhhhhhhhhh/xiuxian-server-alpha' },
+      { icon: 'github', link: 'https://github.com/oooohhhhhhhhhh/xiuxian-server' },
     ],
 
     footer: {

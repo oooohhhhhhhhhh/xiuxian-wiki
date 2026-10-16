@@ -164,7 +164,7 @@ Grizzly 的线程与缓存策略。小内存机器除了调 JVM 堆，也建议�
 ## 项目结构鸟瞰
 
 ```
-xiuxian-server-alpha/
+xiuxian-server/
 ├── pom.xml                          # Maven 构建（shade 出可执行 jar）
 ├── install.bat / install.sh         # 一键安装启动脚本
 ├── start.sh / start-low-memory.bat  # 日常启动 / 低内存启动
