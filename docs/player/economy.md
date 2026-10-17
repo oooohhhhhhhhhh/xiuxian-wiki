@@ -187,6 +187,29 @@ private static final long PURIFY_STONE_COST = 1000;
 - 计算：`recycleValue = (long)(item.getPrice() * quantity * 0.30)`，`< 1` 时兜底为 `1`。
 - 扣除物品与发放灵石同事务，成功文案"回收了【X】x N，获得 M 下品灵石"。
 
+## 兑换码
+
+兑换码是运营侧发放福利的渠道：管理员在后台「兑换码」页（`webadmin/assets/js/modules/redeemCodes.js`）
+生成码并配置奖励，玩家在游戏里用 `/兑换 <码>`（别名 `/redeem`，权限码 `game.redeem.code`）领取。
+
+| 项目 | 说明 |
+| --- | --- |
+| 奖励内容 | 金币、灵石、灵力（经验）、物品列表，可组合 |
+| 使用次数上限 | `max_uses`；`0` 表示**不限次数**，达到上限后码自动变为 `redeemed` |
+| 过期时间 | `expires_at`，过期后拒绝并自动标记为 `expired` |
+| 每人限兑 | **每个角色对同一个码只能兑一次**，重复兑换提示「你已经兑换过此码了」 |
+
+兑换在一个事务里完成「查重 → 记录兑换 → 递增使用次数 → 发放奖励」，因此并发下不会超发。
+
+::: warning 两个容易踩的点
+- 兑换码里配置的**物品 key 必须真实存在**：不存在的 key 会被静默跳过（不报错、也不发放），
+  配置完最好先用测试号兑一次核对。
+- 奖励列表为空时直接提示「兑换码配置为空」，不会消耗次数。
+:::
+
+数据落在 `redeem_codes`（码本身）与 `redeemed_codes`（谁兑过哪个码）两张表，详见[数据库设计](/dev/database)。
+管理端接口为 `/api/admin/redeem-codes`，见 [REST API](/dev/rest-api)。
+
 ## 每日签到
 
 `/签到`（`EconomyService.signIn`）。奖励按**连续天数 1~7 循环**发放。

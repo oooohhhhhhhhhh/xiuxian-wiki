@@ -60,12 +60,13 @@ Authorization: Bearer <admin-token>
 
 ## 功能页
 
-侧边栏共 15 个页签（`data-tab` 值即模块名）：
+侧边栏共 16 个页签（`data-tab` 值即模块名）：
 
 | 分组 | 页签 | `data-tab` | 说明 |
 | --- | --- | --- | --- |
 | 主菜单 | 📊 总览 | `overview` | 服务端状态、在线人数、关键指标 |
 | 主菜单 | 👥 玩家管理 | `players` | 搜索玩家、发放物品、改属性、改名、设灵根、封禁/删除 |
+| 主菜单 | 🗺️ 地图管理 | `map` | 已知世界地点与通道、**野外分片只读总览**与手动补货（`GET/POST /api/admin/map/wilderness*`） |
 | 统计 | 💬 消息统计 | `statsMessages` | 各通道消息量 |
 | 统计 | ⚡ 指令统计 | `statsCommands` | 指令调用排行 |
 | 系统 | 🗄️ 数据库 | `database` | 浏览所有表、查看/编辑行数据、清档、重置 |
@@ -101,6 +102,7 @@ webadmin/
         └── modules/              ← 每个 tab 一个文件
             ├── overview.js
             ├── players.js
+            ├── map.js
             ├── database.js
             ├── users.js
             ├── logs.js
