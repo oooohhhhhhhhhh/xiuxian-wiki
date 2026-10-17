@@ -205,8 +205,10 @@ HTTP 状态码与业务码是两套东西：请求成功时 **HTTP 状态是 200
 | `GET` | `/game/item/registry` | `game.item.registry` |
 | `POST` | `/game/item/use` | `game.item.use` |
 | `GET` | `/game/map` | `game.player.info` |
+| `POST` | `/game/map/gather` | `game.player.info` |
 | `GET` | `/game/map/locations` | `game.player.info` |
 | `POST` | `/game/map/travel/{locationId}` | `game.player.info` |
+| `GET` | `/game/map/wilderness` | `game.player.info` |
 | `GET` | `/game/market` | `game.market.view` |
 | `POST` | `/game/market/buy` | `game.market.buy` |
 | `POST` | `/game/market/cancel` | `game.market.cancel` |
@@ -406,10 +408,24 @@ HTTP 状态码与业务码是两套东西：请求成功时 **HTTP 状态是 200
 两者都需要 `admin.database.access` 权限。
 :::
 
-::: warning 野外玩家侧没有 REST 端点
-`/野外`（`WildernessCommand`）与 `/采集`（`GatherCommand`）是 **OneBot 通道专属指令**，
-没有注册 REST 路由，也不在 `/api/game/**` 里。REST/WebSocket 端要读野外需走管理端
-`/api/admin/map/wilderness`，或由服务端内置行为驱动（见[野外（无限分片世界）](/player/wilderness)）。
+::: tip 野外玩家侧的两个端点
+`/野外`（`WildernessCommand`）与 `/采集`（`GatherCommand`）按「指令即路由」同时暴露 HTTP 路由：
+
+| 方法 | 路径 | 权限 | 等价指令 |
+| --- | --- | --- | --- |
+| `GET` | `/api/game/map/wilderness` | `game.player.info` | `/野外` |
+| `POST` | `/api/game/map/gather` | `game.player.info` | `/采集` |
+
+`GET /api/game/map/wilderness` 是**只读**视图：站在已知世界时返回 `gateways`（各出境口 → 野外入口分片）；
+站在野外时返回 `chunk`（分片坐标、地形、是否已固化、补货剩余秒数）与 `nodes`
+（每个节点的 id / 名称 / 危险度 / 境界门槛 / 灵气与地界加成 / 剩余资源 `resources` 与译名 `resourceNames`），
+外加当前所在节点的 `exits` 邻接表。
+
+`POST /api/game/map/gather` 成功时除 `message` 外返回 `data`：
+`itemKey` / `itemName` / `quantity` / `remaining`。
+
+两者与 OneBot 侧共用同一份 `MapService` 实现和同一权限码，所以冷却、境界门槛、采空与补货行为完全一致。
+详见[野外（无限分片世界）](/player/wilderness)。
 :::
 
 ## OAuth2 接口

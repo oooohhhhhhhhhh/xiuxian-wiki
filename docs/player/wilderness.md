@@ -576,6 +576,16 @@ public synchronized boolean restock(long now, long intervalSeconds) {
 
 删文件后还会顺手清掉变空的分桶目录，避免留下成千上万个空目录。查询玩家是否在分片内失败时，代码**当作有玩家在**（宁可少回收一片，也不能把人脚下的地删了）。
 
+### 玩家侧（REST）
+
+`/野外` 与 `/采集` 按「指令即路由」同时暴露 HTTP 路由，与 OneBot 侧共用同一份 `MapService` 实现和同一权限码，
+因此冷却、境界门槛、采空与补货行为完全一致：
+
+| 方法 | 接口 | 权限 | 等价指令 | 作用 |
+| --- | --- | --- | --- | --- |
+| `GET` | `/api/game/map/wilderness` | `game.player.info` | `/野外` | 只读视图：已知世界返回 `gateways`（出境口 → 野外入口分片）；野外返回 `chunk`、`nodes`（危险度/境界门槛/灵气与地界加成/剩余 `resources` 与译名 `resourceNames`）与当前节点的 `exits` |
+| `POST` | `/api/game/map/gather` | `game.player.info` | `/采集` | 采集当前节点资源；成功时返回 `data.itemKey` / `itemName` / `quantity` / `remaining` |
+
 ### 管理台
 
 | 接口 | 权限 | 作用 |
