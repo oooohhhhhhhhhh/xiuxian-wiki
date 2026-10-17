@@ -400,3 +400,97 @@ OneBot / Minecraft 适配器的**实际运行参数**（地址、端口、令牌
 `plugins/*.jar` 形式的第三方插件，其开关由插件自身的启停状态管理，
 不受 `plugins.yml` 控制。
 :::
+
+---
+
+## config/game/wilderness_map.json
+
+野外无限分片世界的配置，独立于 `application.yml` / `plugins.yml`。
+文件由 `GameConfigLoader` 从 jar 内 `game/wilderness_map.json` 模板**首次释放**到
+`<jar目录>/config/game/wilderness_map.json`；删除它只会失去自定义、回到 jar 内默认值，不会让服务起不来。
+
+改动**重启后生效**；也可在管理台「地图」页触发一次资源补货（不重读文件）。
+完整玩法语义见[野外（无限分片世界）](/player/wilderness)，这里只列键、默认值与兜底：
+
+### 顶层键
+
+| 键 | 默认值 | 说明 | 非法值兜底 |
+| --- | --- | --- | --- |
+| `enabled` | `true` | 野外总开关；`false` 时 `/野外` 提示已关闭 | — |
+| `worldSeed` | `20261015` | 世界种子（地形纯函数的盐值）；改它等于换一个全新的无限世界，**已探索分片会作废** | — |
+| `chunkSize` | `4` | 每片 `chunkSize×chunkSize` 个节点（出厂 16） | `<1→4`，`>8→8`（`normalize()` 收敛） |
+| `maxChunksFromOrigin` | `256` | 距原点最大分片距离（≈1024 格），越界为「混沌未开」 | 读取时夹取到 `[1, …]`，并受 `COORD_BIAS` 限制 |
+| `evictAfterMinutes` | `1440` | 未探索分片空闲多久后被回收；**只要分片有探索记录就永久保留、永不回收** | — |
+| `restockIntervalMinutes` | `180` | 资源原地补货周期（分钟）；到点只把剩余量补回上限，地形/探索记录不动 | — |
+| `entryLocationIds` | `[5,7,8,12,15]` | 可出境的已知世界地点 id（落霞山/昆仑墟/九幽渊/万妖谷/白骨岭）；第 i 个落在入口环第 i 个方位分片 | — |
+| `travelTimeSeconds` | `20` | 野外所有边（片内/跨片/进出野外）的路程秒数 | — |
+| `cultivationBonusBase` | `1.0` | 野外节点灵气加成基础值 | — |
+| `cultivationBonusPerDanger` | `0.08` | 灵气加成：每 1 级危险度追加 `0.08` | — |
+| `explorationBonusBase` | `1.15` | 野外节点地界加成基础值 | — |
+| `explorationBonusPerDanger` | `0.15` | 地界加成：每 1 级危险度追加 `0.15` | — |
+| `dangerPerChunks` | `12` | 每远离原点 12 片（≈48 格）危险度档位 +1 | `max(1, …)` |
+| `minRealmPerDanger` | `3` | 危险度 N 的节点境界门槛 = `N × minRealmPerDanger`（如危险度 4 → 境界 12） | — |
+| `elevationScale` | `24` | 高程噪声尺度（单位：分片），越大地形带越宽 | — |
+| `moistureScale` | `17` | 湿度噪声尺度 | — |
+| `borderEdgeChancePercent` | `45` | 相邻两片之间每条可能通道的成边概率；每侧至少强制保留一条 | — |
+| `extraEdgeChancePercent` | `25` | 片内生成树之外额外成环的边概率 | — |
+
+### `biomes` 段
+
+生成时按**声明顺序取第一个命中** `(elevationMin,elevationMax)×(moistureMin,moistureMax)` 区间的条目，
+最后一条应覆盖全域作兜底（默认灵田平原）。每个地形：
+
+| 键 | 说明 |
+| --- | --- |
+| `key` | 地形 key（同时决定资源池键与节点 `region`） |
+| `name` | 地形显示名（如幽冥沼泽） |
+| `danger` | 该地形的基础危险度 |
+| `elevationMin/Max` | 高程命中区间（噪声取值 [-1,1]） |
+| `moistureMin/Max` | 湿度命中区间 |
+| `resourcePool` | ⚠️ 目前**没有任何代码读取**（详见[野外](/player/wilderness)「资源池的查找顺序」）；实际按地形 `key` 同名池 |
+| `namePrefixes` / `nameSuffixes` / `descriptions` | 节点名/描述模板 |
+
+### `resourcePools` 段
+
+`"1"`~`"4"`（危险度档位键）按档位抽资源；另有 `marsh` / `snow` / `volcano` 三个地形专用池。
+每个池是物品数组：`{ "itemKey", "weight", "minQuantity", "maxQuantity" }`（物品 key 必须真实存在，`MapWildernessTest` 会断言）。
+
+### `firstVisitReward` 段
+
+| 键 | 默认值 | 说明 |
+| --- | --- | --- |
+| `spiritStonesBase` | `20` | 首达灵石基础值 |
+| `spiritStonesPerDanger` | `30` | 每 1 级危险度追加灵石 |
+| `spiritStonesWildernessMultiplier` | `2.0` | 野外节点再乘该倍率 |
+| `experienceBase` | `50` | 首达灵力基础值 |
+| `experiencePerDanger` | `80` | 每 1 级危险度追加灵力 |
+| `experienceWildernessMultiplier` | `2.0` | 野外节点再乘该倍率 |
+| `completionBonusSpiritStones` | `2000` | 走遍已知世界全部 15 地点的一次性奖励 |
+
+### `teleport` 段
+
+| 键 | 默认值 | 说明 |
+| --- | --- | --- |
+| `enabled` | `true` | 是否允许付费直传 |
+| `baseCost` | `50` | 费用基础值（灵石） |
+| `costPerDanger` | `60` | 每 1 级危险度（出发+目的）追加灵石 |
+| `wildernessSurcharge` | `1.5` | 目的地是野外节点时的附加系数 |
+| `minCost` | `10` | 费用下限 |
+
+### `gather` 段
+
+| 键 | 默认值 | 说明 |
+| --- | --- | --- |
+| `cooldownSeconds` | `60` | `/采集` 冷却（秒） |
+| `maxPerGather` | `3` | 单次最多采集量 |
+
+### 隐藏 / 只在代码里出现的键
+
+| 键 | 默认值 | 说明 |
+| --- | --- | --- |
+| `wilderness.dir` | `data/wilderness` | 野外分片文件根目录（`WildernessChunkStore` 用 `AppConfig.get("wilderness.dir", …)` 读取；**不在** `wilderness_map.json` 里，而是进 `application.yml`） |
+
+### 旧版废弃字段
+
+`idBase` / `nodeCount` / `refreshIntervalMinutes` / `regions` / `namePrefixes` / `nameSuffixes` / `descriptions`
+是旧版字段，已废弃。读到会点名提示管理员删除文件重新释放（详见[野外](/player/wilderness)「旧版废弃字段」）。

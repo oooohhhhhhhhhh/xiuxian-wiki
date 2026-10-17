@@ -11,8 +11,8 @@
 | `subRealm` | 小境界序号（0=初期，1=中期，2=后期） |
 | `name` | 境界显示名 |
 | `description` | 境界描述文案 |
-| `requiredExp` | 突破到此境界**累计**所需经验 |
-| `requiredSpiritStones` | 突破到此境界所需灵石 |
+| `requiredExp` | 突破**门槛**：当前经验 ≥ 该值才可突破，突破成功时从当前经验**扣除**该值（`RealmService` 先比 `experience < requiredExp`，成功后 `experience -= requiredExp`） |
+| `requiredSpiritStones` | 突破需**消耗**的下品灵石数（`removeItemWithConn` 扣除；`0`=不需要） |
 | `hpBonus` / `mpBonus` / `attackBonus` / `defenseBonus` / `speedBonus` / `spiritBonus` | 属性加成 |
 | `unlockSkillId` | 突破到此境界解锁的技能 ID（0=无） |
 
@@ -89,9 +89,26 @@
 | 真仙·后期 | 4,250,000 | 3,930,000 | 850,000 | 595,000 | 180,000 | 685,000 |
 | 金仙 | 5,400,000 | 5,000,000 | 1,080,000 | 756,000 | 228,000 | 870,000 |
 
-::: warning 加成是"该境界的值"而非累加增量
-配置里给的是**到达该境界后应达到的加成值**。
-突破时按目标境界的配置覆盖，不要自己把各境界的数值累加。
+::: danger 加成是「每次突破的增量」，一路**累加**，不是覆盖
+`RealmService.applyBreakthroughSuccess*()` 的写法是在**当前属性上累加**目标境界的 `*Bonus`：
+
+```java
+player.setMaxHp(player.getMaxHp() + nextConfig.getHpBonus());
+player.setAttack(player.getAttack() + nextConfig.getAttackBonus());
+player.setDefense(player.getDefense() + nextConfig.getDefenseBonus());
+player.setSpeed(player.getSpeed() + nextConfig.getSpeedBonus());
+player.setSpirit(player.getSpirit() + nextConfig.getSpiritBonus());
+player.setMaxMp(player.getMaxMp() + nextConfig.getMpBonus());
+```
+
+所以上面的「属性加成一览」是**每个境界条目在突破时增加的量**。玩家从凡人一路突破到
+真仙·后期，总加成是「凡人 → 真仙·后期」这一路上**所有条目 `*Bonus` 的累加和**，再加初始值。
+:::
+
+::: warning 灵根重塑会重置属性为初始值
+`PlayerService.updateSpiritualRoot` 会把 `max_hp / mp / attack / defense / speed / spirit`
+**覆盖回** `100/50/10/5/5/5 × 新灵根倍率`，从而**丢掉此前累积的所有境界/功法加成**。
+因此玩家在解锁灵根重塑后属性可能明显下滑，这是预期行为。
 :::
 
 ## 修炼速度倍率
@@ -143,5 +160,9 @@
 | 渡劫期 | 12 |
 | 真仙 | 13 |
 
-其余境界的 `unlockSkillId` 均为 `0`（不解锁技能）。
-技能 ID 对应的技能定义见 `skills` 表（默认数据由 `SkillService.insertDefaultSkills()` 写入）。
+::: warning `unlockSkillId` 目前没有任何消费方
+该字段只被 `RealmService` 写进 `RealmBreakthroughResult.unlockedSkillId`，
+全项目（含命令层、REST、WebSocket）都**没有读取它去实际授予技能**。
+也就是说：突破后并不会真正学会对应技能，以上表仅反映配置里写的值，不构成实际能力解锁。
+其他境界的 `unlockSkillId` 均为 `0`。技能学习仍走 `/学习`（`SkillService.learnSkill`）。
+:::

@@ -37,10 +37,10 @@ JAR 目录: /opt/xiuxian
 | `config/blacklist.yml` | 默认黑名单 |
 | `config/onebot_group_config.yml` | 默认 OneBot 群配置 |
 | `game/realm_config.json` | 境界配置（11 大境界 / 29 档位） |
+| `game/wilderness_map.json` | 野外地图配置**模板**，首次启动释放到 `config/game/wilderness_map.json`（见[野外（无限分片世界）](/player/wilderness)） |
 | `install/index.html` | 安装向导页面 |
 | `webadmin/**` | 管理后台静态资源 |
 | `plugin-template/**` | 外部插件脚手架模板 |
-| `data/quiz/` | 答题数据目录 |
 
 ::: warning `built_in_plugins.yml` 已废弃
 它是旧版本的插件开关文件，内容**全部被注释掉**（16 条）。
@@ -63,6 +63,8 @@ JAR 目录: /opt/xiuxian
 | `config/plugins.yml` | **JAR 目录** | ✅ 从 jar 模板释放 | 插件开关 |
 | `config/adapters.json` | **工作目录** | ✅ 写默认配置 | 消息通道实例 |
 | `config/.installed` | 工作目录 | 安装完成时创建 | 安装锁 |
+| `config/game/wilderness_map.json` | JAR 目录 | ✅ 从 jar 模板释放 | 野外地图配置（`GameConfigLoader` 释放；见[野外（无限分片世界）](/player/wilderness)） |
+| `config/newbie_reward.json` | JAR 目录 | ✅ 从内置默认释放 | 新手奖励配置（默认 `enabled=false`，见[角色创建](/player/account)） |
 | `config/experimental.yml` | 同 `plugins.yml` 的父目录 | ❌ | **旧版**实验性开关，可删 |
 
 ::: tip 旧配置会自动迁移
@@ -79,6 +81,7 @@ JAR 目录: /opt/xiuxian
 | `xiuxian.db` | 工作目录 | SQLite 数据库（`database.sqlite_path`，默认 `xiuxian.db`） |
 | `data/` | 工作目录 | 插件共享数据目录（`PluginContext.createSharedContext(new File("data"), ...)`） |
 | `data/players/` | 工作目录 | 玩家数据文件化落盘（`player-data.dir`） |
+| `data/wilderness/` | 工作目录 | 野外分片文件（每片一个 JSON，`wilderness.dir`，见[野外（无限分片世界）](/player/wilderness)） |
 | `log/` | 工作目录 | 日志输出目录（`logging.dir`，默认 `log`） |
 | `plugins/` | 工作目录 | 外部插件 jar（`pm.init(new File("plugins"))`） |
 
@@ -248,6 +251,8 @@ ExecStart=/usr/bin/java -jar /opt/xiuxian/main-0.1.0.jar
 | 🔴 必须 | `xiuxian.db` | 全部玩家数据（SQLite 时） |
 | 🔴 必须 | `config/application.yml` | 含 `jwt.secret`、管理员密码哈希、数据库口令 |
 | 🟡 建议 | `config/plugins.yml` | 插件开关 |
+| 🟡 建议 | `config/game/` | 各玩法配置（含 `wilderness_map.json`；不含则用 jar 内默认） |
+| 🟡 建议 | `data/wilderness/` | 野外探索分片文件（丢失会回到未探索状态，`wilderness.dir` 指向它） |
 | 🟡 建议 | `config/adapters.json` | 通道配置 |
 | 🟡 建议 | `data/` | 玩家数据文件化产物 |
 | 🟢 可选 | `plugins/` | 外部插件 jar |

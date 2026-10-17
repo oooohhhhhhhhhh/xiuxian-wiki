@@ -74,6 +74,79 @@ SQLite 路径已经做过并发调优：`SQLiteDialect.initConnection()` 在每�
 `PRAGMA foreign_keys = ON`、`PRAGMA busy_timeout = 5000`（写锁等 5 秒）、
 `PRAGMA journal_mode = WAL`（读写不互斥），单机中小规模是官方推荐路径。
 
+## systemd / Docker 部署
+
+仓库自带一套可直接落地的守护与容器文件，路径解析都对齐了 `Main.reportDeploymentPaths()`
+的「jar 目录 / 工作目录」规则：
+
+| 文件 | 用途 |
+| --- | --- |
+| `deploy/xiuxian-server.service` | systemd 服务单元（含安全加固与自动拉起） |
+| `Dockerfile` | 容器镜像（Maven wrapper 构建 + 运行时镜像） |
+| `docker-compose.yml` | Compose 编排（命名卷持久化 + 健康检查） |
+| `docker/entrypoint.sh` | 容器入口（把镜像内 jar 同步到 `/app` 再启动） |
+
+### systemd（推荐 Linux 物理机/VM）
+
+```bash
+# 建用户与目录
+useradd --system --create-home --shell /usr/sbin/nologin xiuxian
+install -d -o xiuxian -g xiuxian /opt/xiuxian-server
+
+# 放入 jar，并建一个不带版本号的软链接方便升级
+cp target/main-0.1.0.jar /opt/xiuxian-server/
+ln -sfn main-0.1.0.jar /opt/xiuxian-server/main.jar
+chown -R xiuxian:xiuxian /opt/xiuxian-server
+
+# 装单元并启动
+cp deploy/xiuxian-server.service /etc/systemd/system/
+systemctl daemon-reload
+systemctl enable --now xiuxian-server
+
+# 看日志 / 看状态
+journalctl -u xiuxian-server -f
+systemctl status xiuxian-server
+```
+
+单元文件的几个关键点：
+
+- `WorkingDirectory=/opt/xiuxian-server`（== jar 目录），两套路径基准才一致；
+- `Environment=JAVA_OPTS=-Xmx512m -XX:MaxMetaspaceSize=256m -Xss1m`，小内存默认保守，
+  可用 `EnvironmentFile=-/etc/xiuxian-server.env` 覆盖；
+- `Restart=on-failure` + `RestartSec=5s`，崩溃/OOM 自动拉起；
+- `KillSignal=SIGTERM` + `TimeoutStopSec=120`，优雅停服（落盘玩家数据、关连接池）；
+- `ProtectSystem=strict` 但显式 `ReadWritePaths=/opt/xiuxian-server` 放开 `config/ data/ log/ plugins/` 与 `xiuxian.db`。
+
+升级 = 上传新 `main-<版本>.jar` → `ln -sfn` 指到它 → `chown` → `systemctl restart`。
+回滚只需把软链接指回旧 jar 再 restart。
+
+### Docker / Compose
+
+```bash
+docker build -t xiuxian-server .
+docker compose up -d        # 首次启动后打开 http://127.0.0.1:8080/install 完成安装向导
+docker compose logs -f
+docker compose down          # 停，保留数据卷
+docker compose down -v       # 停并删除数据（慎用）
+```
+
+Compose 的要点：
+
+- 命名卷 `xiuxian-state:/app` 挂住整个 `/app`，`config/ data/ log/ plugins/ xiuxian.db` 全部持久化，
+  jar 会随镜像自动更新、不会残留在卷里（`entrypoint.sh` 每次启动把镜像内 jar 覆盖复制到 `/app/main.jar`）；
+- 健康检查探 `GET /api/game/status`（401 = 正常就绪，连接被拒才判失败）；
+- 安装向导提交后会重启容器一次，属正常现象；
+- 若改了 `server.port`，要同步改 `XIUXIAN_PORT` 与 `docker-compose.yml` 的端口映射；
+- 改用 MySQL 时，镜像内服务端只从 `config/application.yml` 读配置（不支持环境变量覆盖），
+  用 `--network container:xiuxian-server` 共享 localhost 的方式拉一个 MySQL，再手工改卷内 `application.yml` 的 `database` 段。
+
+::: tip 三条部署方式共用的铁律
+无论 systemd 还是容器，**jar 所在目录 == 工作目录** 都要成立，否则
+`config/adapters.json`、`xiuxian.db`、`data/`、`log/`、`plugins/` 会落到意料之外的位置，
+启动日志会打印 `[WARN] 工作目录与 JAR 目录不一致`。systemd 用 `WorkingDirectory` 钉死，
+容器里 `entrypoint.sh` 把 jar 复制到 `/app` 并 `cd /app` 保证一致。
+:::
+
 ## 需要备份的东西
 
 | 路径 | 内容 | 重要性 |

@@ -117,7 +117,7 @@ QQ 里发 `/打坐`，Minecraft 里发 `/xiuxian 打坐`（前缀由 `minecraft.
 
 ## 全部指令
 
-共 **81 条指令**（不含别名）。表格里：
+共 **83 条指令**（不含别名，`Command` 子类实测 83 个）。表格里：
 
 - **指令** 列是主名，括号内是别名
 - **模块** 列是该指令所属的内置玩法模块，对应 `config/plugins.yml` 的开关键
@@ -139,6 +139,11 @@ QQ 里发 `/打坐`，Minecraft 里发 `/xiuxian 打坐`（前缀由 `minecraft.
 | 指令 | 说明 | 权限码 | 模块 |
 | --- | --- | --- | --- |
 | **/称号** （/title /chenghao） | 查看/装备/卸下称号 | — | `title` |
+
+::: tip 新手引导
+第一次进服的玩家会走一遍「打坐 → 停止 → 游历 → 秘境 → 突破 → 晨修 → 出师」的主线引导，
+并在功能首用时收到 💡 提示。见[新手引导](/player/guide)。
+:::
 | **/疗伤** （/heal） | 恢复伤势 | `game.player.info` | `player` |
 | **/灵根** （/spiritualroot /talent） | 查看角色的灵根天赋 | — | `player` |
 | **/状态** （/信息 /status /info） | 查看角色状态（含离线收益） | `game.player.info` | `player` |
@@ -182,6 +187,8 @@ QQ 里发 `/打坐`，Minecraft 里发 `/xiuxian 打坐`（前缀由 `minecraft.
 | 指令 | 说明 | 权限码 | 模块 |
 | --- | --- | --- | --- |
 | **/地图** （/map） | 查看游戏地图 | `game.player.info` | `map` |
+| **/野外** （/wilderness /wild） | 查看所在野外分片的地形、危险度、资源与邻片 | `game.player.info` | `map` |
+| **/采集** （/gather /collect） | 在野外采集资源 | `game.player.info` | `map` |
 | **/进入秘境** （/secret_enter） | 进入指定秘境 | `game.secret_realm` | `secret_realm` |
 | **/秘境** （/secret） | 查看可用秘境 | `game.secret_realm` | `secret_realm` |
 | **/游历** （/explore） | 外出游历探索 | `game.explore` | `exploration` |
@@ -232,10 +239,10 @@ QQ 里发 `/打坐`，Minecraft 里发 `/xiuxian 打坐`（前缀由 `minecraft.
 
 | 指令 | 说明 | 权限码 | 模块 |
 | --- | --- | --- | --- |
-| **/编辑玩家** （/editplayer /修改玩家） | 修改玩家属性（仅私聊） | `admin.status` | — |
-| **/发放** （/give /发放物品） | 给玩家发放物品/金币/灵力/灵石（仅私聊） | `admin.status` | — |
-| **/发放** （/give /giveitem /give_item） | [管理] 向指定玩家发放物品 | `admin.items.give` | — |
-| **/服务器状态** （/serverstatus /status） | 查看服务器运行状态（仅私聊） | `admin.status` | — |
+| **/编辑玩家** （/editplayer /修改玩家） | 修改玩家属性（仅私聊） | `admin.users.manage` | — |
+| **/发放** （/give） | 给玩家发放物品/金币/灵力/灵石（仅私聊） | `admin.items.give` | — |
+| **/发放物品** （/giveitem /give_item） | [管理] 向指定玩家发放物品 | `admin.items.give` | — |
+| **/服务器状态** （/serverstatus） | 查看服务器运行状态（仅私聊） | `admin.status` | — |
 | **/关闭服务端** （/shutdown /关闭服务器） | 关闭游戏服务器（仅私聊，需要 SUPER_ADMIN 权限） | `admin.shutdown` | — |
 | **/轨迹** （/trace /玩家轨迹） | 查看玩家操作轨迹 | `qq.command.trace` | — |
 | **/经济** （/economy） | 查看全服经济数据 | `admin.economy` | — |
@@ -243,10 +250,10 @@ QQ 里发 `/打坐`，Minecraft 里发 `/xiuxian 打坐`（前缀由 `minecraft.
 | **/日志** （/logs /服务器日志） | 查看服务器最近日志（仅私聊） | `admin.logs.view` | — |
 | **/玩家列表** （/players /playerslist） | 查看玩家列表（仅私聊，支持分页） | `admin.status` | — |
 | **/玩家详情** （/playerinfo /playerdetail） | 查看指定玩家详情（仅私聊） | `admin.status` | — |
-| **/物品列表** （/items /allitems） | 查看所有物品列表（仅私聊，支持分页） | `admin.status` | — |
+| **/全物品列表** （/items /allitems） | 查看所有物品列表（仅私聊，支持分页） | `admin.status` | — |
 | **/修复装备** （/fixequip） | 修复装备数据一致性问题 | `admin.fix.equipment` | — |
-| **/修改灵根** （/setroot /设置灵根 /灵根） | 修改玩家的灵根（仅私聊，需要管理员权限） | `admin.status` | — |
-| **/用户列表** （/users /userlist） | 查看所有用户及其角色（仅私聊） | `admin.status` | — |
+| **/修改灵根** （/setroot /设置灵根） | 修改玩家的灵根（仅私聊，需要管理员权限） | `admin.users.manage` | — |
+| **/用户列表** （/users /userlist） | 查看所有用户及其角色（仅私聊） | `admin.users.manage` | — |
 | **/重启** （/restart） | 重启游戏服务器（仅私聊，需要 SUPER_ADMIN 权限） | `admin.shutdown` | — |
 | **/cleardb_all** （/重置全部数据） | 重置全部数据并重新初始化（仅私聊） | `admin.database.reset_all` | — |
 | **/cleardb_players** （/清除玩家数据） | 清除所有玩家数据（仅私聊） | `admin.database.clear_players` | — |

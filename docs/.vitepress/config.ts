@@ -53,6 +53,7 @@ export default defineConfig({
           items: [
             { text: '修炼系统', link: '/player/cultivation' },
             { text: '境界与突破', link: '/player/realm' },
+            { text: '新手引导', link: '/player/guide' },
             { text: '灵根系统', link: '/player/spiritual-root' },
             { text: '功法系统', link: '/player/techniques' },
             { text: '技能系统', link: '/player/skills' },
@@ -76,6 +77,7 @@ export default defineConfig({
             { text: '游历探索', link: '/player/exploration' },
             { text: '秘境探索', link: '/player/secret-realm' },
             { text: '世界地图', link: '/player/map' },
+            { text: '野外（无限分片世界）', link: '/player/wilderness' },
             { text: '洞府系统', link: '/player/cave' },
             { text: '季节系统', link: '/player/season' },
           ],

@@ -302,7 +302,7 @@ HTTP 状态码与业务码是两套东西：请求成功时 **HTTP 状态是 200
 | `PUT` | `/admin/adapters` | `admin.adapters` |
 | `GET` | `/admin/adapters` | `admin.adapters` |
 | `POST` | `/admin/adapters/reload` | `admin.adapters` |
-| `POST` | `/admin/announce` | `admin.status` |
+| `POST` | `/admin/announce` | `admin.announce` |
 | `POST` | `/admin/authority` | `admin.users.manage` |
 | `GET` | `/admin/backup` | `admin.database.access` |
 | `POST` | `/admin/backup/import` | `admin.database.reset_all` |
@@ -330,6 +330,8 @@ HTTP 状态码与业务码是两套东西：请求成功时 **HTTP 状态是 200
 | `GET` | `/admin/logs` | — |
 | `GET` | `/admin/market/listings` | `admin.economy` |
 | `GET` | `/admin/market/price` | `admin.economy` |
+| `GET` | `/admin/map/wilderness` | `admin.database.access` |
+| `POST` | `/admin/map/wilderness/restock` | `admin.database.access` |
 | `GET` | `/admin/me` | — |
 | `GET` | `/admin/newbie-reward/config` | `admin.config.manage` |
 | `POST` | `/admin/newbie-reward/config` | `admin.config.manage` |
@@ -394,6 +396,20 @@ HTTP 状态码与业务码是两套东西：请求成功时 **HTTP 状态是 200
 `GET /api/admin/players`、`GET /api/admin/plugins`、`GET /api/admin/logs`
 在注解层面没有 `@RequirePermission`，它们依赖 `AdminAuthFilter` 的登录校验
 （以及 `admin.login` 权限）。
+:::
+
+::: tip 野外的两个管理端点
+- `GET /api/admin/map/wilderness`：野外分片只读总览（读 `data/wilderness/*.json`，野外不进数据库）；
+  带 `?cx=&cy=` 可看指定分片，否则以原点为中心展示一圈。
+- `POST /api/admin/map/wilderness/restock`：给已采空的分片**原地补货**（只补资源，不换地形、不删探索记录）。
+
+两者都需要 `admin.database.access` 权限。
+:::
+
+::: warning 野外玩家侧没有 REST 端点
+`/野外`（`WildernessCommand`）与 `/采集`（`GatherCommand`）是 **OneBot 通道专属指令**，
+没有注册 REST 路由，也不在 `/api/game/**` 里。REST/WebSocket 端要读野外需走管理端
+`/api/admin/map/wilderness`，或由服务端内置行为驱动（见[野外（无限分片世界）](/player/wilderness)）。
 :::
 
 ## OAuth2 接口

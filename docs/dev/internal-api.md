@@ -73,7 +73,7 @@ public static PlayerService getPlayerService() {
 | `ExplorationService`（`PlayerService`） | 游历与随机事件 |
 | `SecretRealmService`（`PlayerService`） | 秘境进入与探索 |
 | `CombatService` | PVE 战斗与伤害计算 |
-| `MapService` | 地图地点、移动与灵气加成 |
+| `MapService` | 地图地点、移动与灵气加成；**野外无限分片世界**（`resolveWilderness`、`teleportByUnlock`、`getChunkOf`、`isChunkPinned`、`recordFirstVisit`、`maintainWildernessIfNeeded`、`restockWilderness`、`getWildernessStats`） |
 | `CaveService` | 洞府与灵力收集 |
 | `FormationService` | 阵法布置与加成 |
 | `FarmService` | 灵田种植与收获 |
@@ -88,10 +88,14 @@ public static PlayerService getPlayerService() {
 | `DailyService` | 每日计数与重置 |
 | `MinecraftPlayerBindingService` | Minecraft 账号绑定 |
 
-::: warning 有些领域没有独立服务类
-例如团队、排行榜、玩家搜索的逻辑分散在对应指令类里（`onebot/command/team`、
-`rank`、`search`），没有独立的 `XxxService`。改动这些领域时注意
-**不要**把逻辑留在指令类里 —— 按项目约定应下沉到 service。
+::: warning 有些领域没有注册进 ServiceRegistry
+`ServiceRegistry` 只登记**核心玩法服务**（上面 26 个）。以下能力虽有自己的类，却**不注册**在 `ServiceRegistry`：
+
+- `SeasonService`（季节）、`OfflineRewardService`（离线收益）、`RedeemCodeService`（兑换码）、
+  `TeamService`（组队）、`EquipmentFixService`（装备修复）多以静态方法或按需 `new` 调用；
+- 排行榜、玩家搜索等逻辑仍直接写在指令类里（`onebot/command/rank`、`search`）。
+
+需要这些能力时按各自约定调用，不要假设它们走 `ServiceRegistry.getXxx()`。
 :::
 
 ## 数据库访问
