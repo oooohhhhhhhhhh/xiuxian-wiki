@@ -202,6 +202,7 @@ Windows 小内存设备直接用 `start-low-memory.bat`：
 | 限流窗口 / Token 黑名单清理 | **每 5 分钟**（硬编码） |
 | 季节更替检查 / 自动疗伤 / 洞府灵力 | 每 10 秒 |
 | 农田 tick / Buff 过期检查 | 每 1 秒 |
+| 宗门宗主继位扫描 | 每 `sect.succession_sweep_seconds` 秒（默认 600，最小 30；首个 tick 延迟 45 秒） |
 
 **结论**：`market.price_history_cleanup_interval_hours` 只管**价格历史清理**，
 **不控制**到期挂单回收 —— 挂单回收周期固定 60 秒，改不了。完整清单见

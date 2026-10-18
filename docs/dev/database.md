@@ -118,7 +118,7 @@ QQ 官方平台下发的是 **openid**，与真实 QQ 号不是同一身份体�
 
 | 表 | 用途 | 关键字段 |
 | --- | --- | --- |
-| `players` | 角色主表 | `user_id`(唯一)、`name`、`spiritual_root`、`level`、`realm`、`sub_realm`、属性六维、`gold`、`cultivation_progress`、`is_cultivating`、`cultivation_start_time` |
+| `players` | 角色主表 | `user_id`(唯一)、`name`、`spiritual_root`、`level`、`realm`、`sub_realm`、属性六维、`gold`、`cultivation_progress`、`is_cultivating`、`cultivation_start_time`、`last_breakthrough_time`、`breakthrough_pity`(默认 0)、`consolidation`(默认 0)、`last_active_time` |
 | `players_items` | 背包 | `(player_id, item_key)` 唯一、`quantity` |
 | `players_equipment` | 已装备物品 | `(player_id, slot)` 唯一、`item_key`、`enhance_level` |
 | `skills` / `players_skills` | 技能定义 / 已学技能 | `required_realm`、`damage`、`mp_cost`、`cooldown_seconds` / `level`、`proficiency` |
@@ -136,6 +136,22 @@ QQ 官方平台下发的是 **openid**，与真实 QQ 号不是同一身份体�
 
 服务端对脏数据的处理是**自愈**：玩家再发一次 `/打坐` 会按当前时间重新开始闭关，
 而不是把他挡住、逼他先 `/停止`（那会白丢一段闭关时间）。
+:::
+
+::: tip 三个新增的"进度 / 活跃"列
+| 列 | 默认 | 含义 |
+| --- | --- | --- |
+| `breakthrough_pity` | `0` | 连续渡劫失败次数。**存次数而不是加成值**，这样调整 `breakthrough.pity_bonus` 后老数据自动跟着变 |
+| `consolidation` | `0` | 极境凝实层数。属性加成在**读取时**乘算（`PlayerService.applyConsolidationBonus`），不写进属性列 |
+| `last_active_time` | `0` | 跨通道活跃时间戳。QQ / REST / Minecraft 任意一端活动都会刷新，是**唯一可信的活跃信号** |
+
+`last_active_time` 专门用来替代"靠 `last_offline_time` 猜活跃"的做法 ——
+后者只有离线结算时才写，挂机在线的玩家永远是旧值，据此判定弃坑会误伤。
+值为 `0` 表示"尚未观测到活跃"（升级后的老玩家全是 0），
+因此所有按它判断的逻辑都必须显式排除 `0`，否则升级瞬间会把全服玩家判成弃坑。
+
+三列都由 `DatabaseMigration` 以独立的 `ALTER TABLE` 补齐（每列一个 try/catch），
+老库升级后直接可用。
 :::
 
 ### 经济与交易
@@ -168,7 +184,7 @@ QQ 官方平台下发的是 **openid**，与真实 QQ 号不是同一身份体�
 | --- | --- | --- |
 | `chat_messages` | 聊天记录 | `channel`(默认 `world`)、`sender_player_id`、`receiver_player_id`、`content` |
 | `friends` | 好友关系 | `(player_id, friend_player_id)` 唯一、`status`(默认 `pending`) |
-| `sects` | 宗门 | `name`(唯一)、`leader_player_id`、`level`、`prestige`、`max_members`(默认 20) |
+| `sects` | 宗门 | `name`(唯一)、`leader_player_id`、`level`、`prestige`、`max_members`(默认 20)、`leader_absent_since`(默认 0)、`contest_until`(默认 0)、`contest_challenger_id`、`contest_requested`(默认 0) |
 | `sect_members` | 宗门成员 | `(player_id)` 唯一、`role`(默认 `MEMBER`)、`contribution` |
 | `sect_applications` | 入宗申请 | `sect_id`、`player_id`、`status`(默认 `pending`) |
 | `sect_warehouse` | 宗门仓库 | `(sect_id, item_key)` 唯一、`quantity`、`donated_by_player_id` |
@@ -186,6 +202,23 @@ QQ 官方平台下发的是 **openid**，与真实 QQ 号不是同一身份体�
 | `player_map_exploration` | 玩家探索记录 | `(player_id, location_id)` 唯一、`first_visited_at`；只记"首次"，重复到达不写 |
 | `map_location_event_bias` | 地界 → 探索事件权重偏置 | `(location_id, event_key)` 唯一、`weight_multiplier`；让"落霞山产落霞草"这类地点描述真正作用于事件抽取 |
 | `player_daily` | 每日计数 | `player_id`(主键)、`last_morning_cultivation`、`consecutive_days`、`exploration_count`、`battle_count`、`secret_realm_count`、`pvp_count` 等 |
+
+### 世界 Boss
+
+| 表 | 用途 | 关键字段 |
+| --- | --- | --- |
+| `world_bosses` | 全服共享血量的世界 Boss | `UNIQUE (scope, slot)`、索引 `idx_world_bosses_scope_expires`、`hp` / `max_hp`(共享血量)、`realm`、`attack` / `defense` / `speed`、`stone_budget` / `exp_budget`(分红预算)、`expires_at`(整池重建时间)、`killed_at`、`killer_player_id` |
+| `world_boss_damage` | 伤害台账 | `(boss_id, player_id)` 唯一、`damage`、`hits`、`last_hit_at`(同时是**挑战冷却**的存储位) |
+
+::: tip 这两张表刻意没有内存态
+血量与台账全部直接落库，服务重启后血条原样还在；到期重建走读取时的惰性判断
+（`WorldBoss.isExpired`），没有任何 `ScheduledExecutorService`。
+整池重建时会**先删台账再删 Boss**，否则台账会随每次重建无限累积。
+
+`world_boss_damage.last_hit_at` 一列两用：既是"最近一次出手时间"（用于展示），
+也是挑战冷却的条件更新抢占依据（`UPDATE … WHERE last_hit_at <= ?`）。
+详见 [世界 Boss](/player/world-boss)。
+:::
 
 ### 日志
 
@@ -207,6 +240,7 @@ QQ 官方平台下发的是 **openid**，与真实 QQ 号不是同一身份体�
 | `idx_player_buffs_expire` | `player_buffs` | `(expire_time)` | Buff 过期兜底回收任务（见 [Buff 系统](/player/buff)）；有了它，单次代价只与"已过期的行数"相关 |
 | `idx_chat_channel` | `chat_messages` | `(channel)` | 世界频道拉取（仅 MySQL） |
 | `idx_chat_receiver` | `chat_messages` | `(receiver_player_id)` | 私聊拉取（仅 MySQL） |
+| `idx_world_bosses_scope_expires` | `world_bosses` | `(scope, expires_at)` | 世界 Boss 列表与惰性重建判断（见 [世界 Boss](/player/world-boss)） |
 
 ::: warning 这三个索引是后补的，不是一开始就有
 `trade_listings` 早期**一个索引都没有**，但它有两处高频访问：

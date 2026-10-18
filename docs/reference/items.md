@@ -166,13 +166,16 @@ Item item = ItemRegistry.resolve("spirit_stone_low"); // key
 /灵石兑换 [数量] <从> <到>
 示例: /灵石兑换 1 极品 下品
 ```
+:::
 
 ::: warning 灵石兑换是精确 1000:1，没有损耗
 `ItemService.exchangeSpiritStones` 用 `rate = getExchangeRate(from) / getExchangeRate(to)`、
 `targetAmount = amount * rate` 计算，**不扣手续费、不产生损耗**。
 
 但它也是**单向**的：`fromGrade <= toGrade` 时直接拒绝，提示「只能将高等级灵石兑换为低等级灵石」——
-不能用它把小灵石合成大灵石（合并走的是另一条自动合并逻辑）。
+不能用它把小灵石合成大灵石。**向上合并是自动的**：按"下品等值"发放灵石时
+`ItemService.compressSpiritStones` 会按阈值把超额部分折成更高面额
+（见[经济系统](/player/economy#灵石面额-四档是-面额-不是-稀有度)）。
 
 另外两条容易混淆的指令，**损耗在它们身上**：
 
@@ -180,7 +183,6 @@ Item item = ItemRegistry.resolve("spirit_stone_low"); // key
 | --- | --- | --- |
 | `/货币兑换`（`币兑`） | 金币 ↔ 下品灵石 | 汇率不对称：10 金币 → 1 下品灵石；1 下品灵石 → 5 金币 |
 | `/交换` | 物品 → 能量 | **20% 转化损耗**（只得原价 80%） |
-:::
 :::
 
 ## 全部物品
@@ -193,6 +195,13 @@ Item item = ItemRegistry.resolve("spirit_stone_low"); // key
 | `spirit_stone_low` | 下品灵石 | 凡品 | 999999 | 1 | ✅ | — |
 | `spirit_stone_mid` | 中品灵石 | 良品 | 999999 | 1,000 | ✅ | — |
 | `spirit_stone_supreme` | 极品灵石 | 仙品 | 999999 | 1,000,000,000 | ✅ | — |
+
+::: tip 「堆叠上限」和「灵石持有上限」是两回事
+上表的 `999999` 是**物品表的堆叠上限**，对四档灵石都一样。
+灵石真正的持有上限另有一组常量（`MAX_HOLD_PER_GRADE`：下品无限 / 中品 999,999 /
+上品 9,999 / 极品 99），只在"显式发放某一档"时生效；按"下品等值"发放的路径
+会自动向上压缩面额，不受这组上限约束。详见[经济系统](/player/economy#灵石面额-四档是-面额-不是-稀有度)。
+:::
 
 ### 消耗品（`CONSUMABLE`）
 

@@ -138,12 +138,12 @@ openssl rand -base64 48
 
 唯一被删掉的是 `admin.password` **那一行本身**，以及紧随其后、缩进更深的注释延续行
 （即旧模板里对 `admin.password` 的说明注释）——这是 `YamlFileEditor` 刻意实现的语义。
+:::
 
 ::: warning 旧版本确实会丢注释
 早期实现用 SnakeYAML 整文件 dump，会把注释全部丢弃并按默认排版重排。
 `AppConfig` 的注释明确记为 "v2：不再用 SnakeYAML 整文件 dump（旧实现会丢弃全部注释并按默认排版重排）"。
 如果你看到的是"注释全丢"的说法，那是过时描述。
-:::
 :::
 
 ### 9. 邮件 SMTP `smtp`
@@ -255,6 +255,65 @@ OneBot / Minecraft 适配器的**实际运行参数**（地址、端口、令牌
 详见 [Buff 系统](/player/buff)。
 :::
 
+### 15d. 宗门宗主继位 `sect`
+
+| 配置键 | 类型 | 默认值 | 说明 |
+| --- | --- | --- | --- |
+| `sect.leader_absent_days` | int | `14` | 宗主连续不活跃超过该天数即判定弃坑，自动触发按贡献继位。`0` = 关闭该判定，只保留「主动退位」路径 |
+| `sect.contest_days` | int | `7` | 继位后开启的宗主竞争期天数（期内竞争者可发起争夺战；无人发起则现任继续担任） |
+| `sect.contest_level_gap` | int | `6` | 继任者与最强竞争者的「境界序位差」小于该值才开启竞争期 |
+| `sect.succession_sweep_seconds` | int | `600` | 继位维护扫描间隔（秒），**最小 30**（读取时 `Math.max(30, ...)`） |
+
+::: tip 判定依据是 `players.last_active_time`
+这是所有通道通用的活跃信号（QQ / REST / Minecraft 任意一端活动都会刷新），
+而不是 `last_offline_time`。升级后老玩家该值为 `0`（= 尚未观测到活跃），
+**不会被误判**，从各自下一次登录开始计时。
+
+扫描只处理两件低频维护：把长期不活跃的宗主标记为缺位、清理到期的竞争期。
+**主动退位走的是同步路径**，不依赖这个任务。
+详见 [宗门系统](/player/sect#宗主缺位继位与竞争期)。
+:::
+
+### 15e. 世界 Boss `world_boss`
+
+| 配置键 | 类型 | 默认值 | 说明 |
+| --- | --- | --- | --- |
+| `world_boss.scope` | string | `global` | Boss 池的归属键。单世界服务器固定 `global`；将来若要「按群 / 按分线」各有一批，改这里即可，不必改表结构 |
+| `world_boss.boss_count` | int | `3` | 一个池子里放几只 Boss（**夹到 1–10**）。按序号切成低 / 中 / 高三档境界区间 |
+| `world_boss.respawn_hours` | int | `4` | 整池重建周期（小时）。到期由读取时的惰性判断触发重建，**不需要定时任务** |
+| `world_boss.hp_multiplier` | int | `12` | 血量倍率：相对同境界普通 Boss |
+| `world_boss.max_stage_gap` | int | `9` | 挑战境界门槛：玩家与 Boss 的「境界序位差」达到该值即不可挑战 |
+| `world_boss.challenge_cooldown_seconds` | int | `300` | 每人每只 Boss 的挑战冷却（秒）。`0` = 不限制 |
+| `world_boss.max_single_reward` | int | `1000000` | 单次奖励熔断阈值。超过则改发「阈值 / (5 + rand(6))」 |
+| `world_boss.kill_bonus_ratio` | number | `0.2` | 补最后一刀的人额外获得的修为比例（按 `exp_budget` 计算，同样受熔断约束） |
+
+::: warning 熔断不是日常路径
+正常的伤害分红已经被「预算 × 本次伤害 / 最大血量」天然限死（累计伤害不会超过最大血量）。
+熔断防的是**配置事故**（比如把 `exp_budget` 多写一个零）被一次击杀放大成经济崩溃。
+:::
+
+详见 [世界 Boss](/player/world-boss)。
+
+### 15f. 突破：连败增益与凝实 `breakthrough`
+
+| 配置键 | 类型 | 默认值 | 说明 |
+| --- | --- | --- | --- |
+| `breakthrough.pity_bonus` | int | `20` | 每次渡劫失败累加的成功率（**百分点**）。失败次数存在 `players.breakthrough_pity`，存的是"次数"而不是"加成值"，调整这里之后老数据自动跟着变。成功后清零 |
+| `breakthrough.max_pity_stack` | int | `10` | 失败增益的堆叠上限（次数）。再往上也会被 95% 的成功率硬上限吃掉 |
+| `breakthrough.consolidate_rate_penalty` | int | `10` | 凝实每层降低的成功率百分点（**按乘算打折**，作用在各项加成汇总之后） |
+| `breakthrough.consolidate_stat_bonus` | int | `8` | 凝实每层提升的基础属性百分比（读取时乘算，见 `PlayerService.getFinalAttack` 等） |
+| `breakthrough.consolidate_max_layers` | int | `3` | 凝实层数上限 |
+| `breakthrough.consolidate_punish_bonus` | number | `0.3` | 凝实每层把渡劫失败的经验损失放大多少（3 层即 ×1.9） |
+
+::: warning 与参照实现的差异
+参照实现（`uu-xiuxian`）用的是「基础成功率的 20%」，但本项目高境界基础成功率只有 10%，
+那样要失败 40+ 次才见效 —— 因此改成**固定百分点**。
+凝实的收益也从「闭关修为上限 ×1.5」改成「基础属性乘算」，因为本项目**没有修为上限**。
+参照实现那条「凝实层数 × 5% 概率触发被动天劫」**未实现**（没有挂机 tick 可挂）。
+:::
+
+详见 [境界与突破](/player/realm#四、连败增益-pity)。
+
 ### 16. 性能 / 线程池 `performance`
 
 | 配置键 | 类型 | 默认值 | 说明 |
@@ -314,12 +373,31 @@ OneBot / Minecraft 适配器的**实际运行参数**（地址、端口、令牌
 旧版本写在 `application.yml` 里的 `built_in_plugins` 段仅作为**只读兜底**：
 升级后首次启动会自动迁移，未迁移到的键仍会读取，但一旦 `plugins.yml` 里存在同名键即以 `plugins.yml` 为准。
 
+### 20. 重启方式 `restart`
+
+| 配置键 | 类型 | 默认值 | 说明 |
+| --- | --- | --- | --- |
+| `restart.mode` | string | `auto` | 重启方式：`auto` / `supervised` / `self-spawn` |
+
+影响安装向导完成后的重启与 QQ 的 `/重启` 指令：
+
+| 取值 | 行为 | 适用场景 |
+| --- | --- | --- |
+| `auto` | 自动判断：检测到 systemd（`INVOCATION_ID`）、容器（`/.dockerenv` 等）时**只退出**，由托管方拉起；否则自己拉起新进程 | 默认，绝大多数情况 |
+| `supervised` | 强制「只退出」 | systemd 单元需 `Restart=always`，容器需 restart 策略，面板需开启自动重启；**否则服务不会自己回来** |
+| `self-spawn` | 强制自己拉起新进程 | 裸跑、或面板托管但没开自动重启 |
+
+::: warning 选错 `supervised` 会让服务停在那里
+`supervised` 只是"退出"，不会自己回来。如果你既不是 systemd 也不是容器托管，
+选它等于关服。不确定就用默认的 `auto`。
+:::
+
 ---
 
 ## plugins.yml
 
-`config/plugins.yml` 的根节点是 `plugins:`，共 **30 个开关**：
-24 个稳定玩法模块、2 个实验性插件、4 个消息通道适配器。
+`config/plugins.yml` 的根节点是 `plugins:`，共 **31 个开关**：
+25 个稳定玩法模块、2 个实验性插件、4 个消息通道适配器。
 
 取值规则：`true` = 启用（默认），`false` = 停用（重启后生效），注释掉的行 = 使用默认值 `true`。
 
@@ -362,6 +440,7 @@ OneBot / Minecraft 适配器的**实际运行参数**（地址、端口、令牌
 | `cultivation` | `true` | 修炼系统（打坐、突破、转世、天象、晨修） |
 | `skill` | `true` | 技能系统（学习技能、技能列表、战斗策略） |
 | `pvp` | `true` | 战斗系统（挑战、决斗） |
+| `world_boss` | `true` | 世界 Boss（全服共享血量、按伤害分红、贡献榜） |
 | `inventory` | `true` | 背包/装备系统（物品、装备、强化） |
 
 ### 经济 / 制造玩法模块

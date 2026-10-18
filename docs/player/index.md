@@ -55,10 +55,11 @@ QQ 里发 `/打坐`，Minecraft 里发 `/xiuxian 打坐`（前缀由 `minecraft.
 ### 然后做什么
 
 1. **`/打坐`** —— 开始修炼，挂机攒经验
-2. **`/突破`** —— 经验够了就突破境界
+2. **`/突破`** —— 经验够了就突破境界；拿不准先用 `/突破 预览` 看成功率
 3. **`/游历`** —— 赚资源、碰机缘
 4. **`/宗门`** —— 加入宗门拿加成
-5. **`/坊市`** —— 买卖物品
+5. **`/世界boss`** —— 打全服共享血量的世界 Boss，按伤害分红
+6. **`/坊市`** —— 买卖物品
 
 ## 系统导航
 
@@ -69,7 +70,7 @@ QQ 里发 `/打坐`，Minecraft 里发 `/xiuxian 打坐`（前缀由 `minecraft.
 | 系统 | 页面 | 一句话 |
 | --- | --- | --- |
 | 修炼 | [修炼系统](/player/cultivation) | 打坐/闭关攒经验，受境界、季节、地点、灵根、功法等多重加成 |
-| 境界 | [境界与突破](/player/realm) | 11 大境界 29 档位，突破要经验 + 灵石 |
+| 境界 | [境界与突破](/player/realm) | 11 大境界 29 档位，突破要经验 + 灵石；连败必涨概率、可凝实极境 |
 | 灵根 | [灵根系统](/player/spiritual-root) | 17 种灵根，各有特殊效果，可重铸 |
 | 功法 | [功法系统](/player/techniques) | 学习/装备/升级功法，提升战力 |
 | 技能 | [技能系统](/player/skills) | 战斗中触发的主动技能 |
@@ -83,6 +84,7 @@ QQ 里发 `/打坐`，Minecraft 里发 `/xiuxian 打坐`（前缀由 `minecraft.
 | --- | --- | --- |
 | PVE | [PVE 战斗](/player/combat) | 野外怪、妖兽、团队 Boss |
 | PVP | [PVP 对战](/player/pvp) | 挑战/决斗其他玩家，每日 10 次 |
+| 世界 Boss | [世界 Boss](/player/world-boss) | 全服共享血量，按伤害分红，补最后一刀另有加成 |
 
 ### 探索与地图
 
@@ -108,9 +110,9 @@ QQ 里发 `/打坐`，Minecraft 里发 `/xiuxian 打坐`（前缀由 `minecraft.
 
 | 系统 | 页面 | 一句话 |
 | --- | --- | --- |
-| 经济 | [经济系统](/player/economy) | 四种灵石、银行、竞拍 |
+| 经济 | [经济系统](/player/economy) | 四种灵石面额（自动压缩）、银行、竞拍 |
 | 坊市 | [坊市交易](/player/market) | 玩家间挂单交易，抽 5% 手续费 |
-| 宗门 | [宗门系统](/player/sect) | 创建/加入宗门，宗门仓库与宗门战 |
+| 宗门 | [宗门系统](/player/sect) | 创建/加入宗门，仓库与宗门战，宗主退位与自动继位 |
 | 社交 | [社交系统](/player/social) | 好友、聊天、排行 |
 | 日常 | [每日系统](/player/daily) | 签到、晨修、每日任务 |
 | 账号 | [账号与角色](/player/account) | 注册、绑定、改密、注销 |
@@ -156,7 +158,7 @@ QQ 里发 `/打坐`，Minecraft 里发 `/xiuxian 打坐`（前缀由 `minecraft.
 | **/打坐** （/闭关 /meditate /cultivate） | 开始打坐修炼 | `game.cultivate` | `cultivation` |
 | **/天象** （/daily） | 查看今日天象与机缘 | `game.player.info` | `cultivation` |
 | **/停止** （/stop） | 结束打坐并结算灵力 | `game.cultivate` | `cultivation` |
-| **/突破** （/breakthrough） | 突破当前境界 | `game.realm.breakthrough` | `cultivation` |
+| **/突破** （/breakthrough） | 突破当前境界；子命令 `预览` 查成功率、`凝实` 淬体 | `game.realm.breakthrough` | `cultivation` |
 | **/转世** （/reincarnate） | 金仙满级后转世重修，保留三成修为重新攀登 | `game.player.info` | `cultivation` |
 
 ### 战斗
@@ -169,6 +171,7 @@ QQ 里发 `/打坐`，Minecraft 里发 `/xiuxian 打坐`（前缀由 `minecraft.
 | **/挑战** （/pvp） | 挑战其他修士 | `game.pvp.challenge` | `pvp` |
 | **/学习** （/learn） | 学习指定技能（支持名称或ID） | `game.skill.learn` | `skill` |
 | **/战斗策略** （/战术 /tactic） | 设置战斗策略 | — | `skill` |
+| **/世界boss** （/worldboss） | 世界 Boss：查看池子 / `挑战` / `排行` / `刷新`（管理员） | `game.player.info` | `world_boss` |
 
 ### 背包
 
@@ -209,7 +212,7 @@ QQ 里发 `/打坐`，Minecraft 里发 `/xiuxian 打坐`（前缀由 `minecraft.
 
 | 指令 | 说明 | 权限码 | 模块 |
 | --- | --- | --- | --- |
-| **/宗门** （/sect） | 宗门管理：输入 /宗门 help 查看所有子命令 | `game.sect.manage` | `sect` |
+| **/宗门** （/sect） | 宗门管理：输入 /宗门 help 查看所有子命令（含 `退位`、`挑战`） | `game.sect.manage` | `sect` |
 | **/组队** （/team） | 组队系统（2-5人，可挑战团队副本） | — | `team` |
 
 ### 经济

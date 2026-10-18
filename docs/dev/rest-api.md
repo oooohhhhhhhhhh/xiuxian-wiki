@@ -226,7 +226,9 @@ HTTP 状态码与业务码是两套东西：请求成功时 **HTTP 状态是 200
 | `GET` | `/game/raid/realms` | `game.secretrealm.enter` |
 | `GET` | `/game/rank` | `game.rank.view` |
 | `POST` | `/game/realm/breakthrough` | `game.realm.breakthrough` |
+| `GET` | `/game/realm/breakthrough/preview` | `game.realm.breakthrough` |
 | `GET` | `/game/realm/config` | `game.realm.config` |
+| `POST` | `/game/realm/consolidate` | `game.realm.breakthrough` |
 | `GET` | `/game/season` | — |
 | `GET` | `/game/secret_realm/areas` | `game.secret_realm` |
 | `POST` | `/game/secret_realm/enter` | `game.secret_realm` |
@@ -268,6 +270,8 @@ HTTP 状态码与业务码是两套东西：请求成功时 **HTTP 状态是 200
 | `POST` | `/game/title/equip` | `game.title.equip` |
 | `GET` | `/game/title/my` | `game.title.view` |
 | `POST` | `/game/title/unequip` | `game.title.equip` |
+| `POST` | `/game/worldboss/challenge` | `game.pvp.challenge` |
+| `GET` | `/game/worldboss/list` | `game.player.info` |
 
 ::: warning 注意权限码与路径不完全对应
 `/api/game/farm/*`、`/api/game/buff`、`/api/game/map/*` 等一批接口
@@ -393,6 +397,8 @@ HTTP 状态码与业务码是两套东西：请求成功时 **HTTP 状态是 200
 | `POST` | `/admin/user/create-admin` | `admin.users.manage` |
 | `GET` | `/admin/users` | `admin.users.manage` |
 | `GET` | `/admin/whoami` | — |
+| `GET` | `/admin/world-boss` | `admin.database.access` |
+| `POST` | `/admin/world-boss/refresh` | `admin.database.access` |
 
 ::: warning 三个接口不需要权限码
 `GET /api/admin/players`、`GET /api/admin/plugins`、`GET /api/admin/logs`
@@ -406,6 +412,14 @@ HTTP 状态码与业务码是两套东西：请求成功时 **HTTP 状态是 200
 - `POST /api/admin/map/wilderness/restock`：给已采空的分片**原地补货**（只补资源，不换地形、不删探索记录）。
 
 两者都需要 `admin.database.access` 权限。
+:::
+
+::: tip 世界 Boss 的两个管理端点
+- `GET /api/admin/world-boss`：当前 Boss 池的管理员视图（含血量、预算、到期时间、击杀者）。
+- `POST /api/admin/world-boss/refresh`：**强制重建整池** —— 先清旧池的伤害台账再生成新一批，
+  等价于 QQ 侧的 `/世界boss 刷新`。
+
+两者都需要 `admin.database.access` 权限。详见 [世界 Boss](/player/world-boss)。
 :::
 
 ::: tip 野外玩家侧的两个端点

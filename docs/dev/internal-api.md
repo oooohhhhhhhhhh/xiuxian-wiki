@@ -40,14 +40,14 @@ public static PlayerService getPlayerService() {
 
 ## 服务清单
 
-共 **26 个**服务。括号内是构造依赖。
+共 **27 个**服务。括号内是构造依赖。
 
 ### 角色与成长
 
 | 服务 | 职责 |
 | --- | --- |
 | `PlayerService` | 角色增删改查、属性、修炼（打坐/停止）、灵根、经验与升级 |
-| `RealmService`（`PlayerService`） | 境界突破、天劫、转世 |
+| `RealmService`（`PlayerService`） | 境界突破、天劫、**连败增益（pity）与凝实**、突破预览、转世 |
 | `SkillService` | 技能定义与已学技能、默认技能写入 |
 | `TechniqueService` | 功法定义、学习/装备/升级、默认功法写入 |
 | `TitleService` | 称号获取与装备 |
@@ -77,6 +77,7 @@ public static PlayerService getPlayerService() {
 | `CaveService` | 洞府与灵力收集 |
 | `FormationService` | 阵法布置与加成 |
 | `FarmService` | 灵田种植与收获 |
+| `WorldBossService` | 世界 Boss：全服共享血量、池子惰性重建、按伤害分红、超发熔断、挑战冷却 |
 
 ### 社交与系统
 
@@ -89,7 +90,7 @@ public static PlayerService getPlayerService() {
 | `MinecraftPlayerBindingService` | Minecraft 账号绑定 |
 
 ::: warning 有些领域没有注册进 ServiceRegistry
-`ServiceRegistry` 只登记**核心玩法服务**（上面 26 个）。以下能力虽有自己的类，却**不注册**在 `ServiceRegistry`：
+`ServiceRegistry` 只登记**核心玩法服务**（上面 27 个）。以下能力虽有自己的类，却**不注册**在 `ServiceRegistry`：
 
 - `SeasonService`（季节）、`OfflineRewardService`（离线收益）、`RedeemCodeService`（兑换码）、
   `TeamService`（组队）、`EquipmentFixService`（装备修复）多以静态方法或按需 `new` 调用；

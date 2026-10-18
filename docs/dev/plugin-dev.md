@@ -4,7 +4,7 @@
 
 | 类型 | 位置 | 开关 | 适合 |
 | --- | --- | --- | --- |
-| **内置插件** | 编译在主 jar 里 | `config/plugins.yml` | 官方玩法模块（24 个）+ 实验性功能 + 消息通道 |
+| **内置插件** | 编译在主 jar 里 | `config/plugins.yml` | 官方玩法模块（25 个）+ 实验性功能 + 消息通道 |
 | **外部插件** | `plugins/*.jar` | 插件自身启停状态 | 第三方扩展，不改主 jar |
 
 ::: tip 先确认你要写哪种
@@ -16,16 +16,16 @@
 
 ## 一、内置插件
 
-### 30 个内置插件
+### 31 个内置插件
 
-`PluginCatalog.createAll()` 是**唯一登记处**，共 30 个：
+`PluginCatalog.createAll()` 是**唯一登记处**，共 31 个：
 
 | 分组 | 数量 | 插件名 |
 | --- | --- | --- |
 | 基础玩法 | 6 | `exploration`、`secret_realm`、`trade`、`sect`、`farm`、`cave` |
 | 社交玩法 | 4 | `chat`、`friend`、`rank`、`search` |
 | 移动/养成 | 4 | `map`、`team`、`title`、`player` |
-| 修炼/战斗 | 4 | `cultivation`、`skill`、`pvp`、`inventory` |
+| 修炼/战斗 | 5 | `cultivation`、`skill`、`pvp`、`world_boss`、`inventory` |
 | 经济/制造 | 6 | `economy`、`energy`、`technique`、`crafting`、`buff`、`formation` |
 | 实验性 | 2 | `experimental_sect_war`（默认**关**）、`experimental_energy_exchange`（默认**开**） |
 | 消息通道 | 4 | `onebot`、`qq`、`minecraft`、`minecraft-player` |

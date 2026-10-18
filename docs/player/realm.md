@@ -12,6 +12,8 @@
 | 突破指令 | `src/main/java/com/mtxgdn/onebot/command/cultivation/BreakthroughCommand.java` |
 | 转世 | `src/main/java/com/mtxgdn/onebot/command/cultivation/ReincarnateCommand.java` |
 | 配置本体 | `src/main/resources/game/realm_config.json` |
+| 连败 / 凝实参数 | `src/main/resources/application.yml` 的 `breakthrough:` 段 |
+| 回归测试 | `src/test/java/com/mtxgdn/game/service/BreakthroughPityTest.java`（16 个用例） |
 
 ## 一、境界与小境界
 
@@ -50,7 +52,17 @@
 | 10 | 0 | 金仙 | 永恒不朽，万劫不灭 | 155,520,000 | 800,000,000 | 5,400,000 | 5,000,000 | 1,080,000 | 756,000 | 228,000 | 870,000 | 0 |
 
 ::: tip 表头中的「所需经验 / 所需灵石」是**从上一档突破到本档**的消耗
-`requiredExp` 与 `requiredSpiritStones` 描述的是「晋升到本境界档位」的门槛：突破校验使用 `nextConfig.getRequiredExp()`，成功后从玩家经验中扣除该值，并消耗等量灵石道具 `mtxgdn:spirit_stone`。
+`requiredExp` 与 `requiredSpiritStones` 描述的是「晋升到本境界档位」的门槛：突破校验使用 `nextConfig.getRequiredExp()`，成功后从玩家经验中扣除该值，并消耗等量灵石。
+
+灵石按**下品等值**汇总后判定与扣除：玩家持有的下品 / 中品 / 上品 / 极品四档灵石
+（以及历史遗留的 `mtxgdn:spirit_stone`）会按汇率折算求和，扣除时从高面额往下扣、
+必要时用下品灵石找零。详见[经济系统 · 灵石面额](/player/economy#灵石面额-四档是-面额-不是-稀有度)。
+:::
+
+::: warning 这里曾经有一个真实的 bug
+早期实现校验和扣除的都是已废弃的旧键 `mtxgdn:spirit_stone`，而游戏内早已不再发放该道具。
+结果是**所有需要灵石的突破都恒报「灵石不足」**，即使玩家手握上亿下品灵石；
+即便侥幸通过，也不会真的扣掉任何灵石。现已改为走 `ItemService` 的四档汇总接口。
 :::
 
 ### 最高境界
@@ -80,6 +92,11 @@ public boolean isMaxRealm() { return id == 10 && subRealm == 0; }
 | 5 | 下一档配置缺失 | `已是最高境界` |
 | 6 | 经验不足 | `经验不足，还需要 N 经验值` |
 | 7 | 灵石不足（`requiredSpiritStones > 0` 时） | `灵石不足，还需要 N 灵石` |
+
+::: tip 失败不设冷却
+冷却只在**突破成功**时写入 `last_breakthrough_time`。渡劫失败不写该字段 ——
+否则「连败增益」要等一个越来越长的冷却才能叠下一层，等于把补偿机制废掉。
+:::
 
 ### 突破冷却
 
@@ -142,16 +159,26 @@ public boolean isMaxRealm() { return id == 10 && subRealm == 0; }
 | --- | --- | --- |
 | 灵力加成 | `spirit / 50.0` | 15.0 |
 | 灵根加成 | 见下表 | — |
-| 天劫对应属性加成 | 见下表 | 0.10（即 +10%） |
+| 天劫对应属性加成 | 见下表 | 10.0 |
 | 渡劫丹 | 背包有 `mtxgdn:tribulation_pill` 时消耗 1 个，`+10%` | — |
+| 连败增益（pity） | `连败次数 × breakthrough.pity_bonus`（默认 `×20`） | 连败次数上限 10 → 最多 +200% |
+| 极境凝实代价 | 汇总后**乘算**打折：`×(100 − min(90, 层数 × 10)) / 100` | 最多打 1 折 |
 
 ```text
-finalRate = min(95.0, baseRate + spiritBonus + rootBonus + statBonus×100 + pillBonus)
-roll = random.nextInt(10000)
-成功 ⟺ roll < (int)(finalRate × 100)
+raw      = baseRate + spiritBonus + rootBonus + statBonus + pillBonus + pityBonus
+raw      = min(95.0, raw)                     // 各项加成汇总后的硬顶
+finalRate = clamp(1.0, 95.0, raw × 凝实系数)   // 凝实打折后再夹一次
+roll     = random.nextInt(10000)
+成功     ⟺ roll < (int)(finalRate × 100)
 ```
 
-即最终成功率硬上限 **95%**。
+即最终成功率硬上限 **95%**、下限 **1%**。凝实折扣作用在**汇总之后**，
+所以它连"连败增益"和"渡劫丹"的收益一起打折 —— 这正是凝实的代价所在。
+
+::: tip 预览与实战共用同一套公式
+`computeRate` 是「预览」和「真实渡劫」唯一的成功率来源。两边各写一份，
+是这类系统最容易出现「预览说 60%、实际按 40% 掷骰」的地方。
+:::
 
 ### 灵根加成 / 减益
 
@@ -183,7 +210,9 @@ roll = random.nextInt(10000)
 - 境界推进到 `nextConfig`（`realm` + `sub_realm`）。
 - 属性累加：`maxHp += hpBonus`、`maxMp += mpBonus`、`attack += attackBonus`、`defense += defenseBonus`、`speed += speedBonus`、`spirit += spiritBonus`；`hp` / `mp` 直接回满到新的上限。
 - `experience -= requiredExp`，`last_breakthrough_time = 当前时间`。
-- 消耗 `requiredSpiritStones` 数量的 `mtxgdn:spirit_stone`（`> 0` 时）。
+- **`breakthrough_pity = 0`、`consolidation = 0`**：连败增益与极境层数都是"为这一次渡劫攒的"，
+  任何一次成功突破都会把它们清空（凝实之力化作突破的踏脚石）。
+- 消耗 `requiredSpiritStones` 等值灵石（`> 0` 时），四档灵石按下品等值汇总后从高面额往下扣。
 - **混沌灵根（`LATE_BLOOMER`）额外成长**：`bonus = max(1, (int)(5 × effectValue))`，攻击/防御/速度各加 `(int)(bonus × (1 + 对应灵根加成比例))`。
 - 大境界突破额外授予称号 `sky_breaker`（破天者），并调用 `TitleService.checkAndGrantTitles(player)` 集中检查境界/战力类称号（不朽尊者 / 逆天者 / 大道之主 / 混沌帝尊 / 剑道宗师）。
 
@@ -191,13 +220,113 @@ roll = random.nextInt(10000)
 
 | 惩罚 | 数值 |
 | --- | --- |
-| 经验损失 | `nextConfig.getRequiredExp() / 3`（不低于 0） |
+| 经验损失 | `(long)(nextConfig.getRequiredExp() / 3.0 × (1 + 凝实层数 × 0.3))` |
 | 生命 | `hp = 1` |
+| 连败增益 | `breakthrough_pity = min(10, 原值 + 1)` |
 | 混沌灵根补偿 | `bonus = max(1, (int)(3 × effectValue))`，攻击/防御/速度各加 `(int)(bonus × (1 + 对应灵根加成比例))` |
 
-失败消息：`渡劫失败！你在{天劫名}中身受重伤，损失了 N 点经验`。天劫日志逐行记录在 `RealmBreakthroughResult.addTribulationLog`，包含「天地感应，{天劫}降临！」「——{副标题}——」「【{描述}】」「抵抗天劫几率: X%」等。
+失败消息：`渡劫失败！你在{天劫名}中身受重伤，损失了 N 点经验`，随后追加一行
+`连败增益已累积至 N 次，下次渡劫成功率 +X%`。天劫日志逐行记录在
+`RealmBreakthroughResult.addTribulationLog`，包含「天地感应，{天劫}降临！」「——{副标题}——」
+「【{描述}】」「抵抗天劫几率: X%」等。
 
-## 四、转世（`/转世`）
+::: warning 凝实会让失败更痛
+每层凝实把失败损失放大 30%，3 层即 **×1.9**。凝实 3 层时渡劫失败，
+损失的是 `requiredExp / 3 × 1.9 ≈ 63%` 的下一档所需经验。
+换来的是一条"不渡劫也能变强"的横向成长线，见下节。
+:::
+
+## 四、连败增益（pity）
+
+渡劫失败不再只是"损失修为然后从头再来"：每失败一次，**下一次**渡劫成功率永久多 `+20%`（百分点），
+直到你成功为止。失败次数存在 `players.breakthrough_pity` 里。
+
+| 已连续失败次数 | 下次成功率加成 | 备注 |
+| --- | --- | --- |
+| 0 | +0% | |
+| 1 | +20% | |
+| 2 | +40% | |
+| 3 | +60% | 真仙（基础 10%）此时 70% |
+| 5 | +100% | 真仙此时被 95% 硬顶 |
+| 10 | +200% | 堆叠上限（`max_pity_stack`），再失败也不再增长 |
+
+设计要点：
+
+| 项 | 说明 |
+| --- | --- |
+| 存什么 | 存**失败次数**而不是"加成值"。调整 `breakthrough.pity_bonus` 后，老数据自动跟着变 |
+| 何时累加 | 只在**大境界渡劫失败**时 `+1`（小境界突破必成，不参与） |
+| 何时清零 | 任何一次**成功**突破（含小境界），以及渡劫成功 |
+| 读取时也夹上限 | 库里的脏值或手工改库不会让加成飞出上限 |
+| 失败不设冷却 | 见「突破冷却」一节的提示 |
+
+::: warning 与参照实现的差异：固定百分点，不是"基础成功率的 20%"
+参照实现是 `rateBonus += max(1, floor(baseRate × 0.2))`。本项目**高境界的基础成功率只有 10%**
+（真仙），按那个公式每次只加 2%，要失败 40 多次才见效 —— 补偿等于没有。
+因此改成**固定 +20 个百分点**，低境界也不至于一失败就飞升。
+:::
+
+## 五、凝实（极境淬体）
+
+修为已经圆满、但不想冒渡劫风险时，可以把修为**压回丹田淬体**，换取永久的基础属性加成。
+每层凝实都会让渡劫更难、失败更痛 —— 它是一条"横向成长线"，不是白给。
+
+| 项 | 规则 |
+| --- | --- |
+| 指令 | `/突破 凝实`（别名 `consolidate`、`极境`） |
+| 开放条件 | **下一次必须是大境界渡劫**；小境界突破本来就没有失败风险，凝实失去意义 |
+| 修为要求 | `experience ≥ nextConfig.getRequiredExp()`（修为必须已圆满） |
+| 层数上限 | `breakthrough.consolidate_max_layers`（默认 3） |
+| 每层收益 | 基础属性 `×(1 + 层数 × 8%)` —— 攻击 / 防御 / 生命 / 法力 / 速度 / 神识 |
+| 每层代价 | 渡劫成功率汇总后 `×(100 − 层数 × 10)%`，即每层打 9 折 |
+| 失败代价 | 经验损失 `×(1 + 层数 × 0.3)`，3 层即 ×1.9 |
+| 何时清零 | 渡劫**成功**后归零（极境之力化作突破的踏脚石）；失败不清零，可以继续叠 |
+
+各层实际数值（默认配置）：
+
+| 凝实层数 | 基础属性 | 渡劫成功率 | 失败经验损失 |
+| --- | --- | --- | --- |
+| 0 | ×1.00 | ×1.00 | ×1.0 |
+| 1 | ×1.08 | ×0.90 | ×1.3 |
+| 2 | ×1.16 | ×0.80 | ×1.6 |
+| 3 | ×1.24 | ×0.70 | ×1.9 |
+
+::: tip 属性加成是"读取时乘算"，不是写进属性列
+`PlayerService.getFinalAttack / getFinalDefense / getFinalMaxHp / getFinalMaxMp / getFinalSpeed /
+getFinalSpirit` 在返回前套一层 `applyConsolidationBonus`。因此：
+
+- 加成**只作用于基础属性**，装备强化与称号加成不被放大；
+- 层数变化立刻生效，不需要回写玩家行；
+- 渡劫成功后层数归零，那部分加成一并消散。
+:::
+
+::: warning 与参照实现的差异：没有"修为上限 ×1.5"
+参照实现里凝实的收益是「闭关时修为上限 ×1.5」。本项目**没有修为上限**（经验可以无限累积），
+照搬会变成一个没有任何作用的空增益，因此改成基础属性乘算。
+参照实现还有一条「凝实层数 × 5% 概率触发被动天劫」，本项目**未实现** ——
+没有挂机 tick 可以挂这个判定。
+:::
+
+## 六、突破预览
+
+`/突破 预览`（别名 `preview`、`概率`、`几率`）在不消耗任何资源、不掷骰的前提下，
+给出这一档突破的完整成功率构成：
+
+```text
+基础成功率: 10%
+灵力加成: +15% (灵力 750)
+灵根加成: +25%
+轮回劫对应属性加成: +8.5%
+连败增益: +60% (已连续失败 3 次)
+极境凝实: ×0.80 (2 层，-20%)
+最终成功率: 94.8%
+```
+
+- 预览**不计**渡劫丹加成，天劫属性加成按 0 计，因此会同时给出一个「属性拉满」的区间上界。
+- 真实渡劫时如果背包里有 `mtxgdn:tribulation_pill`，会消耗 1 个并 `+10%`。
+- 预览与实战共用 `computeRate`，不会出现两套数字。
+
+## 七、转世（`/转世`）
 
 终局循环玩法，`ReincarnateCommand`：
 
@@ -214,7 +343,13 @@ roll = random.nextInt(10000)
 转世不重置已保留的属性，因此多周目玩家的基础属性会逐次叠加 30% 的前世遗泽。
 :::
 
-## 五、境界相关的每日数值
+::: details 连败增益与凝实层数在转世时不清空
+`ReincarnateCommand` 的 UPDATE 只重置境界与经验，不碰 `breakthrough_pity` 与 `consolidation`。
+影响很小：转世后的第一次突破就是大境界渡劫（凡人 → 炼气期），成功即把两者清零。
+若在那之前就带着 3 层凝实，会短暂享受 +24% 的基础属性。
+:::
+
+## 八、境界相关的每日数值
 
 境界 id 在多处作为线性放大系数使用：
 
@@ -227,7 +362,7 @@ roll = random.nextInt(10000)
 | 每日机缘·秘境 1 次 | `(realm + 1) × 100` 灵石 | 同上 |
 | 每日机缘·学技能 1 次 | `(realm + 1) × 80` 经验 | 同上 |
 
-## 六、修改境界配置
+## 九、修改境界配置
 
 ```json
 {

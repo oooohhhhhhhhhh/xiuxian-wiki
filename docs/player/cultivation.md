@@ -19,7 +19,7 @@
 | --- | --- | --- | --- | --- |
 | `/打坐` | `/闭关`、`/meditate`、`/cultivate` | 开始打坐修炼 | `game.cultivate` | `cultivation` |
 | `/停止` | `/stop` | 结束打坐并结算灵力 | `game.cultivate` | `cultivation` |
-| `/突破` | `/breakthrough` | 突破当前境界 | `game.realm.breakthrough` | `cultivation` |
+| `/突破` | `/breakthrough` | 突破当前境界（子命令 `预览` 看成功率构成、`凝实` 极境淬体） | `game.realm.breakthrough` | `cultivation` |
 | `/转世` | `/reincarnate` | 金仙满级后转世重修 | `game.player.info` | `cultivation` |
 | `/晨修` | `/morning` | 每日晨修（5:00~11:00） | `game.player.info` | `cultivation` |
 | `/天象` | `/daily` | 查看今日天象与机缘 | `game.player.info` | `cultivation` |

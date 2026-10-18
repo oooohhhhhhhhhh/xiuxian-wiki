@@ -25,7 +25,7 @@ graph TB
 
     subgraph 指令层
         CR[CommandRegistry]
-        CMD[onebot/command/**: 21 个指令包]
+        CMD[onebot/command/**: 22 个指令包]
     end
 
     subgraph 玩法服务层
@@ -110,8 +110,8 @@ graph TB
 | --- | --- |
 | `com.mtxgdn.Main` | 启动装配、关闭钩子、运行模式 |
 | `common` | 通用基础设施：指令基类与注册表、服务注册表、消息封装 |
-| `game` | **玩法核心**：实体（29）、物品系统（`game.item` 下 22 个 Effect/Type/Registry/Scanner 类）、玩法服务（31）、境界配置、秘境/游历事件。**真正的物品定义类在 `data/mtxgdn/item`**（114 个物品 + 1 个法宝基类 `FormationItem`） |
-| `onebot` | OneBot 协议接入 + **全部玩家指令实现**（21 个指令子包） |
+| `game` | **玩法核心**：实体（31）、物品系统（`game.item` 下 22 个 Effect/Type/Registry/Scanner 类）、玩法服务（31）、境界配置、秘境/游历事件。**真正的物品定义类在 `data/mtxgdn/item`**（114 个物品 + 1 个法宝基类 `FormationItem`） |
+| `onebot` | OneBot 协议接入 + **全部玩家指令实现**（22 个指令子包） |
 | `qq` | QQ 官方机器人接入 |
 | `minecraft` | Minecraft 内嵌通道、MOTD 服务器 |
 | `rest` | Jersey 资源类、鉴权与权限过滤器、异常映射 |

@@ -37,19 +37,90 @@ public static final String[] GRADE_NAMES = {"下品灵石", "中品灵石", "上
 | 2 上品 | `mtxgdn:spirit_stone_high` | 1,000,000 | 9,999 | 3.0 |
 | 3 极品 | `mtxgdn:spirit_stone_supreme` | 1,000,000,000 | 99 | 5.0 |
 
+::: warning 「灵气倍率」目前是一组**死常量**
+`AURA_MULTIPLIERS` 在代码里没有任何引用点 —— 灵石提纯（`/提纯`）走的是自己的成功率和消耗规则，
+不读这个数组。保留它只是历史遗留，别按它推算收益。
+:::
+
 ::: tip 灵石按"下品等值"统一记账
 `ItemService.getSpiritStoneCount(playerId)` = 各级数量 × 汇率求和，再加上旧版 `mtxgdn:spirit_stone` 的数量。因此**所有"需要 N 灵石"的判定都是下品等值**，玩家不必手上恰好是下品灵石。
 :::
 
-### 灵石入账与出账的自动面额处理
+### 灵石面额：四档是"面额"，不是"稀有度"
+
+::: warning 纠正一个常见误解
+下品 / 中品 / 上品 / 极品**不是四种稀有度不同的灵石**，而是同一个数值的四种**面额**：
+
+```text
+1 极品 = 1,000 上品 = 1,000,000 中品 = 1,000,000,000 下品
+```
+
+它们之间唯一的区别是**占用的持有上限额度不同**（中品 999,999 / 上品 9,999 / 极品 99），
+所以高面额的作用是**压缩大额资产的表示形式**，而不是"更值钱的稀有货币"。
+游戏内**没有任何内容会直接发放**中品及以上的灵石 —— 高面额只可能由压缩产生，
+或由玩家用 `/灵石兑换` 主动换。
+:::
+
+### 灵石入账：先记下品，再向上压缩
 
 | 操作 | 行为 |
 | --- | --- |
-| `addSpiritStones(amount)` | 按面额**从大到小**分配（优先高等级），受各等级硬上限约束；剩余尾数用下品灵石补齐 |
+| `addSpiritStonesAuto(amount)` | 先把整笔数量记到**下品**，再调用 `compressSpiritStones` 按阈值向上合并 |
+| `compressSpiritStones()` | 逐级（下品→中品→上品→极品）把"超过阈值"的部分按汇率换成上一级 |
 | `removeSpiritStones(amount)` | 先扣旧版灵石，再从下品往上逐级消耗；若某级面额大于剩余需求，多扣一块并按汇率用**下品灵石找零** |
 
+压缩规则：每级保留最多 `CONSOLIDATE_THRESHOLD_LOW[级]` 的下品等值，其余全部进位。
+
+| 级 | 保留阈值（下品等值） | 即最多保留 |
+| --- | --- | --- |
+| 下品 | 2,000 | 2,000 个下品 |
+| 中品 | 2,000,000 | 2,000 个中品 |
+| 上品 | 2,000,000,000 | 2,000 个上品 |
+| 极品 | 0 | 不参与压缩 |
+
+::: tip 为什么每级要"留 2000 不换"
+留下一点低面额，是为了让**配方与任务里点名 `mtxgdn:spirit_stone_low` 的需求仍能直接满足**。
+若把下品全部换成中品，玩家手里就没有下品可扣了。极品没有"上一级"，
+阈值 `0` 表示它不参与压缩。
+:::
+
+::: warning 压缩刻意不套用 `MAX_HOLD_PER_GRADE`
+中品的硬上限是 999,999，而上品的合并阈值是 2,000,000（下品等值）= 2,000 个中品 ——
+两者相差三个数量级。如果压缩时先按持有上限截断，`≥ 10 亿` 的资产会被永久卡在下品里
+再也换不上去。因此压缩只看阈值、不看持有上限。
+:::
+
+::: details 实测例子（`SpiritStoneGradeTest` 断言的精确数值）
+| 发放总量（下品等值） | 下品 | 中品 | 上品 | 极品 |
+| --- | --- | --- | --- | --- |
+| 500 | 500 | 0 | 0 | 0 |
+| 1,000,000,000 | 2,000 | 2,998 | 997 | 0 |
+| 10,000,000,000 | 2,000 | 2,998 | 2,997 | 7 |
+| 123,456,789 | 2,789 | 2,454 | 121 | 0 |
+
+总量守恒：`997 × 10⁶ + 2,998 × 1000 + 2,000 ≈ 1e9`。
+极品只有在总资产 **> 20 亿**（上品保留 2,000 个 = 2e9）之后才会出现。
+压缩后的高面额灵石**可以正常消费** —— 扣款会从高面额往下拆。
+:::
+
 ::: warning 富甲一方称号的每日检查
-`addSpiritStones` 在 `amount > 0` 时调用 `checkMillionaireTitle`：灵石价值 ≥ `1,000,000` 时触发 `TitleService.checkAndGrantTitles` 授予「富甲一方」。该检查用内存 `ConcurrentHashMap.newKeySet()` 做**每玩家每日一次**去重，避免灵石入账热点每次都查库；因此跨日重置依赖 `millionaireDate` 与当前日期比较。
+`addSpiritStones(playerId, amount)`（**不带 `Connection` 的那个重载**）在 `amount > 0` 时调用
+`checkMillionaireTitle`：灵石价值 ≥ `1,000,000` 时触发 `TitleService.checkAndGrantTitles`
+授予「富甲一方」。该检查用内存 `ConcurrentHashMap.newKeySet()` 做**每玩家每日一次**去重，
+避免灵石入账热点每次都查库；因此跨日重置依赖 `millionaireDate` 与当前日期比较。
+
+带 `Connection` 的重载**不做**这个检查 —— 它跑在调用方的事务里，不该在里面再查库发称号。
+:::
+
+::: details 三个 `addSpiritStones` 重载的区别
+| 重载 | 落账方式 | 压缩 | 持有上限 | 称号检查 |
+| --- | --- | --- | --- | --- |
+| `addSpiritStones(playerId, amount)` | 全量记下品 | ✅ | 不涉及 | ✅ |
+| `addSpiritStones(conn, playerId, amount)` | 全量记下品 | ✅ | 不涉及 | ❌ |
+| `addSpiritStones(playerId, amount, grade)` | **直接记指定面额** | ❌ | ✅（`grade > 0` 时超限抛「灵石持有已达上限」） | ✅ |
+
+第三个重载是"显式发放某一档"的通道，`MAX_HOLD_PER_GRADE` 那组上限就是为它准备的护栏。
+**所有按"下品等值"发放的地方都应该走前两个**，否则极品会变成"这次奖励发得多"的副产品。
 :::
 
 ## 经济指令总览
@@ -322,8 +393,13 @@ DatabaseManager.runTransaction(conn -> {
 
 `markBankDepositDone` 执行 `UPDATE player_bank SET status = 'withdrawn', interest_earned = ? WHERE id = ? AND status = 'active'`——影响 0 行即抛异常，防止并发双取导致本金+利息重复发放。
 
-::: warning 灵庄取款一律发下品灵石
-`bankWithdraw` 用的是 `itemService.addItem(conn, playerId, SPIRIT_STONE_LOW, principal + interest)`，**不是** `addSpiritStones`（自动面额）。因此大额取款会以大量下品灵石入库，占用背包格子；而存入时却是跨等级扣款。这是存/取面额处理的不对称点。
+::: warning 灵庄取款一律发下品灵石（未走压缩）
+`bankWithdraw` 用的是 `itemService.addItem(conn, playerId, SPIRIT_STONE_LOW, principal + interest)`，
+**不是** `addSpiritStones`。因此取款得到的是清一色下品灵石，不会按面额压缩；
+而存入时扣的却是跨等级汇总后的灵石。这是存/取面额处理的不对称点。
+
+实际影响有限（下品没有持有上限，取出来的下品可以在下次入账时被压缩，
+也可以用 `/灵石兑换` 手动换），但"存 1 个极品、取出 10 亿下品"的观感确实不好。
 :::
 
 ### 账户总览

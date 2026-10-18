@@ -45,7 +45,7 @@ JAR 目录: /opt/xiuxian
 ::: warning `built_in_plugins.yml` 已废弃
 它是旧版本的插件开关文件，内容**全部被注释掉**（16 条）。
 
-现在权威的开关文件是 **`plugins.yml`**（30 个键）。
+现在权威的开关文件是 **`plugins.yml`**（31 个键）。
 如果你在 `built_in_plugins.yml` 里改开关，**不会生效**。
 
 `plugins.yml` 的注释里也写明了取值优先级：
@@ -229,7 +229,7 @@ YAML 里请写 `true` / `false`，不要写 `yes` / `no` / `1` / `0`。
 | 配置已生成 | `ls config/` 应有 `application.yml`、`plugins.yml` |
 | 数据库就位 | `ls -lh xiuxian.db`（SQLite） |
 | 日志在写 | `tail -f log/*.log` |
-| 插件开关 | `config/plugins.yml` 的 30 个键 |
+| 插件开关 | `config/plugins.yml` 的 31 个键 |
 | 通道实例 | `config/adapters.json` 的 `enabled` |
 | 安装锁 | `config/.installed` 存在表示已安装完成 |
 

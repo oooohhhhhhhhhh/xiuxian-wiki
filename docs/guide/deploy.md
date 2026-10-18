@@ -209,21 +209,23 @@ java -Xms512m -Xmx2g -jar main-0.1.0.jar --nogui
 会**先建表、再迁移**，全部语句幂等（`CREATE TABLE IF NOT EXISTS`、
 `ALTER TABLE ... ADD COLUMN` 失败即忽略），每次启动都跑一遍，重复执行无副作用。
 
-`initTable()` 先发约 40 条 `CREATE TABLE IF NOT EXISTS`，覆盖 `users`、
+`initTable()` 先发数十条 `CREATE TABLE IF NOT EXISTS`，覆盖 `users`、
 `verification_codes`、`players`、`players_items`、`players_equipment`、
 `skills`/`players_skills`、`techniques`/`players_techniques`、`recipes`、
 `trade_listings`、`player_daily`、`qq_bindings`、`qq_official_bindings`、`mc_bindings`、
 `roles`/`permissions`/`role_permissions`/`user_roles`、`chat_messages`、`friends`、
 `player_action_logs`、`sects` 系列、`map_locations`/`map_connections`、
 `redeem_codes`/`redeemed_codes`、`caves`、`formations`、`player_economy`、`player_bank`、
-`auction_listings`/`auction_bids`、`player_energy`、`player_titles`、`token_blacklist`，
-以及本版本新增的 `trade_price_history`；随后建立 3 个索引（均 `IF NOT EXISTS`）：
+`auction_listings`/`auction_bids`、`player_energy`、`player_titles`、`token_blacklist`、
+以及本版本新增的 `trade_price_history`、`world_bosses`/`world_boss_damage`；
+随后建立 4 个索引（均 `IF NOT EXISTS`）：
 
 | 索引 | 列 | 用途 |
 | --- | --- | --- |
 | `idx_trade_price_item_time` | `trade_price_history(item_key, sold_at)` | 行情查询 |
 | `idx_trade_listings_status_expires` | `trade_listings(status, expires_at)` | 到期回收任务（每 60 秒一次）与在售筛选 |
 | `idx_trade_listings_seller_status` | `trade_listings(seller_player_id, status)` | 查询某卖家的挂单 |
+| `idx_world_bosses_scope_expires` | `world_bosses(scope, expires_at)` | 世界 Boss 列表与惰性重建判断 |
 
 `DatabaseMigration.executeMigrations()` 再补历史库缺的列与表：
 
@@ -237,7 +239,11 @@ java -Xms512m -Xmx2g -jar main-0.1.0.jar --nogui
 | 补列 | `player_daily.pvp_count` |
 | 补列 | `farm_plots.wilted_time`、`root_bonus`、`season_modifier`、`pest_state`、`pest_time`、`crop_quality` |
 | 补列 | `trade_listings.expires_at`（本版本新增） |
+| 补列 | `players.breakthrough_pity`、`consolidation`（连败增益 / 极境层数） |
+| 补列 | `players.last_active_time`（跨通道活跃时间，宗主弃坑判定用） |
+| 补列 | `sects.leader_absent_since`、`contest_until`、`contest_challenger_id`、`contest_requested`（宗主继位 / 竞争期） |
 | 建表 | `player_buffs`、`farm_plots` |
+| 建表 | `world_bosses`、`world_boss_damage`（世界 Boss 与其伤害台账） |
 | 数据迁移 | `redeem_codes` 由 `is_active` 布尔列改为 `status` 字符串列（MySQL 会 DROP 旧列）；`players_items.quantity` 提升为 `BIGINT`（仅 MySQL）；把 `qq_bindings` 里含非数字字符的行（QQ 官方 openid）搬到 `qq_official_bindings` |
 | 表重建 | `qq_official_bindings` 增加 `app_id` 维度（建新表 → 拷数据 → 删旧表 → 改名，失败保留原表） |
 
@@ -340,6 +346,7 @@ java -Xms512m -Xmx2g -jar main-0.1.0.jar --nogui
 | OneBot 黑名单禁言续期 | — | 启动后 12 小时 | 每 12 小时 | 仅 OneBot 通道运行时 |
 | QQ 官方心跳 | `QQBot-Heartbeat` | 立即 | 每 `heartbeatIntervalMs`（缺省 40 秒） | 仅 QQ 官方通道启用时 |
 | 插件 jar 文件监听 | `plugin-file-watcher` | 启动后 3 秒 | 每 3 秒 | **仅当 `plugins.hot_swap: true`** |
+| 宗门宗主继位扫描 | `sect-succession-sweeper` | 启动后 **45 秒** | 每 `sect.succession_sweep_seconds` 秒（默认 600，最小 30） | `sect.leader_absent_days`、`sect.contest_days`、`sect.contest_level_gap` |
 
 ::: tip 关于「坊市回收周期」的常见误解
 `market.price_history_cleanup_interval_hours` 控制的是**价格历史清理**任务的间隔，
@@ -416,7 +423,29 @@ netstat -ano | findstr ":8080"                 # Windows
 | 交互模式按 Enter | 停适配器 → 停 MOTD → `server.shutdownNow()` |
 | `--nogui` 下 Ctrl+C / `SIGTERM` | 触发停机钩子（含玩家数据 flush、连接池关闭） |
 | `POST /api/admin/shutdown` | 需 `admin.database.reset_all` 权限；异步停服并 `System.exit(0)` |
+| QQ `/重启`（`/restart`） | 需 `admin.shutdown` 权限（SUPER_ADMIN）；按 `restart.mode` 决定"只退出"还是"自己拉起新进程" |
 | 安装向导保存配置后 | 自动重启：先起新进程，轮询 `/api/game/status` 就绪（最多 60 秒）再退出旧进程，避免端口空窗 |
+
+### `restart.mode`：重启到底是"退出"还是"重启"
+
+`/重启` 与安装向导的重启都读 `restart.mode`（默认 `auto`）：
+
+| 取值 | 行为 | 什么时候用 |
+| --- | --- | --- |
+| `auto` | 自动判断：检测到 systemd（`INVOCATION_ID`）、容器（`/.dockerenv` 等）时**只退出**，由托管方拉起；否则自己拉起新进程 | 默认，几乎总是对的 |
+| `supervised` | 强制"只退出" | systemd 单元需 `Restart=always`，容器需 restart 策略，面板需开启自动重启 |
+| `self-spawn` | 强制自己拉起新进程 | 裸跑、或面板托管但没开自动重启 |
+
+::: danger `supervised` 选错等于关服
+`supervised` 只是退出，**不会自己回来**。若你既不是 systemd 也不是容器托管，
+服务会停在那里等人手动拉起。不确定就用默认的 `auto`。
+:::
+
+::: warning systemd 单元必须配 `Restart=always`
+早期版本的单元文件写的是 `Restart=on-failure`，而正常重启的退出码是 `0`，
+于是"重启"变成了"关机"。仓库里的 `deploy/xiuxian-server.service` 已改为 `Restart=always`；
+**如果你自定义过 unit，请务必保留这一项**，否则托管方不会把你拉起来。
+:::
 
 停机钩子调用 `PlayerDataService.shutdown()`，先 `scheduler.shutdown()` 再 `flushDirty()`，
 把待同步玩家数据写进 `data/players/`。请给它几秒钟，**不要 `kill -9`**。

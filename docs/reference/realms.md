@@ -12,7 +12,7 @@
 | `name` | 境界显示名 |
 | `description` | 境界描述文案 |
 | `requiredExp` | 突破**门槛**：当前经验 ≥ 该值才可突破，突破成功时从当前经验**扣除**该值（`RealmService` 先比 `experience < requiredExp`，成功后 `experience -= requiredExp`） |
-| `requiredSpiritStones` | 突破需**消耗**的下品灵石数（`removeItemWithConn` 扣除；`0`=不需要） |
+| `requiredSpiritStones` | 突破需**消耗**的灵石数（**下品等值**；`ItemService.removeSpiritStones` 从四档灵石按面额从高到低扣除；`0`=不需要） |
 | `hpBonus` / `mpBonus` / `attackBonus` / `defenseBonus` / `speedBonus` / `spiritBonus` | 属性加成 |
 | `unlockSkillId` | 突破到此境界解锁的技能 ID（0=无） |
 

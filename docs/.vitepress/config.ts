@@ -68,6 +68,7 @@ export default defineConfig({
           items: [
             { text: 'PVE 战斗', link: '/player/combat' },
             { text: 'PVP 对战', link: '/player/pvp' },
+            { text: '世界 Boss', link: '/player/world-boss' },
           ],
         },
         {

@@ -207,6 +207,12 @@ Skill attackSkill = selectAttackSkill(skills, currentMp, mpReserve, attackerRoot
 
 ## Boss
 
+::: tip 三种 Boss 不是一回事
+本页讲的是**个人 PVE Boss**（一次性对手，血量只属于你这一场）与**团队 Raid Boss**（血量属于这一队）。
+另有一种**世界 Boss**：血量全服共享、直接落库、奖励按伤害比例分红，
+见[世界 Boss](/player/world-boss)。
+:::
+
 ### 千年妖王（`/讨伐 讨伐`）
 
 | 项目 | 值 | 项目 | 值 |
