@@ -118,7 +118,7 @@ QQ 官方平台下发的是 **openid**，与真实 QQ 号不是同一身份体�
 
 | 表 | 用途 | 关键字段 |
 | --- | --- | --- |
-| `players` | 角色主表 | `user_id`(唯一)、`name`、`spiritual_root`、`level`、`realm`、`sub_realm`、属性六维、`gold`、`cultivation_progress`、`is_cultivating`、`cultivation_start_time`、`last_breakthrough_time`、`breakthrough_pity`(默认 0)、`consolidation`(默认 0)、`last_active_time` |
+| `players` | 角色主表 | `user_id`(唯一)、`name`、`spiritual_root`、`level`、`realm`、`sub_realm`、属性六维、`gold`、`cultivation_progress`、`is_cultivating`、`cultivation_start_time`、`last_breakthrough_time`、`breakthrough_pity`(默认 0)、`consolidation`(默认 0)、`lang`(默认 `''`)、`last_active_time` |
 | `players_items` | 背包 | `(player_id, item_key)` 唯一、`quantity` |
 | `players_equipment` | 已装备物品 | `(player_id, slot)` 唯一、`item_key`、`enhance_level` |
 | `skills` / `players_skills` | 技能定义 / 已学技能 | `required_realm`、`damage`、`mp_cost`、`cooldown_seconds` / `level`、`proficiency` |
@@ -152,6 +152,16 @@ QQ 官方平台下发的是 **openid**，与真实 QQ 号不是同一身份体�
 
 三列都由 `DatabaseMigration` 以独立的 `ALTER TABLE` 补齐（每列一个 try/catch），
 老库升级后直接可用。
+:::
+
+::: tip `players.lang` 回填的是空串，不是 `zh_cn`
+`lang` 存玩家的界面语言偏好（`VARCHAR(16) DEFAULT ''`），空串表示**没手动选过**。
+迁移时特意回填空串而不是 `zh_cn`：这样管理员以后改 `i18n.default-language`，
+那些从没选过语言的玩家会跟着变；回填成 `zh_cn` 就永远卡在中文了。
+
+它是**账号级**的——一份设置同时作用于 QQ、Minecraft、Web 三个入口。
+请求头 `X-Lang` / `?lang=` 只影响当次请求，不落库。
+详见[多语言（i18n）](./i18n)。
 :::
 
 ### 经济与交易

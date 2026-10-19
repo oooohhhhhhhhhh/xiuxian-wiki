@@ -79,14 +79,31 @@ GrizzlyHttpServerFactory.createHttpServer(
 | 字段 | 说明 |
 | --- | --- |
 | `code` | 业务码，**`0` 表示成功**（`GameErrorCode.OK`），非 0 为错误码 |
-| `message` | 提示信息 |
+| `key` | 词条键（如 `sect.not_member`），供客户端自行查本地语言包 |
+| `message` | 已按本次请求语言翻译好的文案，**直接显示即可** |
 | `data` | 业务数据，可能是对象、数组或 `null` |
+
+::: tip `key` 和 `message` 都给
+`message` 是服务端翻译好的最终文案；`key` 让缓存了语言包的客户端能自己再翻一次，省掉往返。
+两者都在，客户端不需要迁就服务端的翻译。详见[多语言（i18n）](./i18n)。
+:::
 
 ::: danger 成功码是 0，不是 200
 判定成功请用 `code == 0`（即 `ApiResponse.isSuccess()`），**不要**判断 `code == 200`。
 
 HTTP 状态码与业务码是两套东西：请求成功时 **HTTP 状态是 200，而响应体里的 `code` 是 0**。
 :::
+
+### 语言协商
+
+响应文案的语言按下列优先级决定，识别不了的 code 会静默跳过、继续看下一级：
+
+1. `?lang=en_us` 查询参数
+2. `X-Lang: en_us` 请求头
+3. `Accept-Language: en-US,en;q=0.9` 标准头
+4. `i18n.default-language` 配置
+
+请求头只影响当次请求。要改玩家偏好请调 `POST /api/game/i18n/lang`。
 
 ### 错误码
 
@@ -200,6 +217,10 @@ HTTP 状态码与业务码是两套东西：请求成功时 **HTTP 状态是 200
 | `POST` | `/game/friend/reject` | `game.friend.manage` |
 | `POST` | `/game/friend/remove` | `game.friend.manage` |
 | `POST` | `/game/heal` | `game.player.info` |
+| `GET` | `/game/i18n/bundle` | 免鉴权 |
+| `GET` | `/game/i18n/lang` | `game.i18n` |
+| `POST` | `/game/i18n/lang` | `game.i18n` |
+| `GET` | `/game/i18n/languages` | 免鉴权 |
 | `GET` | `/game/inventory` | `game.inventory.view` |
 | `POST` | `/game/item/add` | `admin.items.give` |
 | `GET` | `/game/item/registry` | `game.item.registry` |
@@ -331,6 +352,9 @@ HTTP 状态码与业务码是两套东西：请求成功时 **HTTP 状态是 200
 | `POST` | `/admin/groups/{name}/permissions` | `admin.roles.manage` |
 | `DELETE` | `/admin/groups/{name}/permissions/{permissionCode}` | `admin.roles.manage` |
 | `POST` | `/admin/groups/{name}/permissions/set` | `admin.roles.manage` |
+| `POST` | `/admin/i18n/export` | `admin.i18n.manage` |
+| `POST` | `/admin/i18n/reload` | `admin.i18n.manage` |
+| `GET` | `/admin/i18n/status` | `admin.i18n.manage` |
 | `GET` | `/admin/items` | `admin.status` |
 | `POST` | `/admin/login` | — |
 | `GET` | `/admin/logs` | — |

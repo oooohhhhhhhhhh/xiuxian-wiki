@@ -13,6 +13,7 @@
 | 接 WebSocket | [WebSocket 协议](./websocket) |
 | 加一个新指令 | [指令框架](./commands) |
 | 管权限、加权限码 | [权限系统](./permissions) |
+| 加文案、接多语言 | [多语言（i18n）](./i18n) |
 | 接消息通道 / 写适配器 | [消息通道与适配器](./adapters) |
 | 写插件 | [插件开发](./plugin-dev) |
 | 改 Web 管理控制台 | [Web 管理控制台](./webadmin) |

@@ -81,7 +81,7 @@
 | `qq.command.admin` | 管理指令 |
 | `qq.command.trace` | 查看玩家轨迹 |
 
-### 管理后台 `admin.*`（23）
+### 管理后台 `admin.*`（24）
 
 | 权限码 | 名称 |
 | --- | --- |
@@ -104,6 +104,7 @@
 | `admin.economy` | 管理经济 |
 | `admin.items.give` | 发放物品 |
 | `admin.announce` | 发送全服公告 |
+| `admin.i18n.manage` | 管理多语言词条 |
 | `admin.redeem.code.manage` | 管理兑换码 |
 | `admin.oauth.manage` | 管理 OAuth2 配置 |
 | `admin.fix.equipment` | 修复装备数据 |

@@ -99,6 +99,30 @@ public class PingCommand extends Command {
 没在表里列出的分类会排在**最后**。要调整顺序，只需在 `CATEGORY_ORDER` 里加一行。
 :::
 
+### 描述与用法的多语言
+
+`description` 与 `usage` 是玩家看得见的（`ctx.reply(getUsage())`、`/帮助` 列表、WebSocket 命令清单），所以它们也要能翻译。在 `super(...)` 之后补一行：
+
+```java
+public class BindCommand extends Command {
+    public BindCommand() {
+        super(new String[]{"绑定", "bind"}, "将QQ/MC号绑定到已有游戏账号", "/绑定", "账号", null, true, false);
+        setI18nKeys("cmd.bind.desc", "cmd.bind.usage");
+    }
+}
+```
+
+`getDescription()` / `getUsage()` 会先查语言包，**查不到就回落到构造时给的中文字面量**——所以没配词条的指令行为完全不变，不会把裸 key 露给玩家。
+
+某一项不需要翻译时传 `null`（比如用法本身就是 `/cleardb_all` 这种纯命令名）。
+
+::: warning 命令名不翻译
+`names` 数组是「命令匹配」而不是「消息文案」。翻译它玩家就不知道该打什么了。
+中英文别名本来就该并存于同一个数组，如 `{"阵法", "formation"}`。
+:::
+
+详见[多语言（i18n）](./i18n)。
+
 ## 子命令
 
 带子命令的指令用 `registerSub` 注册：
