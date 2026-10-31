@@ -17,7 +17,7 @@
 | --- | --- | --- |
 | OneBot 子命令 | `registerSub(...)` | QQ 里 `/指令 子命令` 可用 |
 | HTTP 路由 | `RouteDefinition.get/post(...)` | 暴露成 REST 接口 |
-| 模块归属 | `setModule("farm")` | 受 `config/plugins.yml` 开关门控 |
+| 模块归属 | `setModule("farm")` | 受 `config/plugins/farm.yml` 的 `enabled` 门控 |
 
 ::: tip 一套逻辑，多端复用
 同一个指令类的业务逻辑写在 handler 里，OneBot 与 HTTP 只是两个不同的入口。
@@ -132,7 +132,7 @@ public class SectCommand extends Command {
 
     public SectCommand() {
         super(new String[]{"宗门", "sect"}, "宗门系统", "用法: /宗门 <子命令>", "宗门", "game.sect.manage");
-        setModule("sect");                       // 受 plugins.yml 的 sect 开关门控
+        setModule("sect");                       // 受 config/plugins/sect.yml 的 enabled 门控
 
         registerSub("list",   (ctx, p, parts) -> ctx.reply(SectService.list()));
         registerSub(new String[]{"info", "详情"}, (ctx, p, parts) -> { ... });
@@ -282,7 +282,7 @@ return command.isModuleEnabled() ? command : null;
 需要绕过门控（例如管理端要看到全部指令）时用 `CommandRegistry.getRaw(name)`。
 :::
 
-模块名对应 `config/plugins.yml` 的 `plugins.*` 键，
+模块名对应 `config/plugins/<模块名>.yml` 的 `enabled`，
 例如 `"farm"`、`"sect"`、`"experimental_sect_war"`。
 完整清单见[插件开关](/guide/plugins)。
 
@@ -342,7 +342,7 @@ public class MyFeatureCommand extends Command {
 2. **权限码**：如果用了新权限码，先在 `PermissionCode` 里加一行（见[权限系统](/dev/permissions)）。
    用 `game.*` 前缀的码会自动包含进 `PLAYER` 角色。
 
-3. **模块名**：用 `config/plugins.yml` 里已存在的键。如果要新增模块，
+3. **模块名**：用 `config/plugins/` 下已存在的文件名（不含 `.yml`）。如果要新增模块，
    需在 `PluginCatalog` 里登记（见[插件开发](/dev/plugin-dev)）。
 
 4. **编译并重启**，在启动日志里确认类出现在 `registered` 列表。

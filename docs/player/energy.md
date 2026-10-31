@@ -203,7 +203,7 @@ registerSub(new String[]{"help", "帮助"}, this::doHelp);
 未启用插件时的提示：
 
 ```text
-能量转化系统暂未开放，请在 config/plugins.yml 中将 experimental_energy_exchange 设为 true（或在 WebUI「插件管理」页启用该实验性插件）。
+能量转化系统暂未开放，请在 config/plugins/experimental_energy_exchange.yml 中将 enabled 设为 true（或在 WebUI「插件管理」页启用该实验性插件）。
 ```
 
 ## REST 接口
@@ -243,7 +243,7 @@ registerSub(new String[]{"help", "帮助"}, this::doHelp);
 /**
  * 实验性插件：能量转化 / 等价交换。
  * <p>
- * 配置键: {@code plugins.experimental_energy_exchange}（默认 true，见 config/plugins.yml）
+ * 配置键: {@code enabled}（默认 true，见 config/plugins/experimental_energy_exchange.yml）
  * 功能: 物品转化为能量、能量兑换物品（{@code /转化}、{@code /交换} 指令与
  * {@code energy/convert}、{@code energy/exchange} 接口）。
  * <p>
@@ -268,20 +268,19 @@ public class EnergyExchangePlugin extends BuiltInPlugin {
 | 启用钩子 | `onEnable` → 日志「实验性功能已启用: 能量转化（等价交换）」 |
 | 停用钩子 | `onDisable` → 日志「实验性功能已停用: 能量转化（等价交换）」 |
 
-`config/plugins.yml` 中的声明：
+`config/plugins/experimental_energy_exchange.yml` 中的声明：
 
 ```yaml
-  # ---- 实验性插件（独立于稳定玩法，默认按各自默认值）----
-  # 停用即整体关闭该实验性内容：相关指令/接口会被门控拒绝。
-  # 这两个开关由旧 experimental.yml 的 sect_war / energy_exchange 迁移而来。
-  experimental_sect_war: false         # 宗门战（实验性，默认关闭）
-  experimental_energy_exchange: true   # 能量转化/等价交换（实验性，默认开启）
+# 实验性插件（独立于稳定玩法，默认开启）
+# 停用即整体关闭该实验性内容：相关指令/接口会被门控拒绝。
+# 本开关由旧 experimental.yml 的 energy_exchange 迁移而来。
+enabled: true
 ```
 
 门控判断走 `BuiltInPluginRegistry.isModuleEnabled(name)`，内部调用 `isEnabledOrUnknown`：**未注册的模块名一律视为启用**（`return entry == null || entry.active;`），避免把未知模块误判为「已停用」而永久封禁其命令。
 
 ::: warning 未知模块名默认放行
-如果 `experimental_energy_exchange` 未在注册表中出现（例如自定义构建裁剪了该插件），`isEnabledOrUnknown` 返回 `true`，**门控会放行**而不是拦截。停用必须在 `plugins.yml` 里显式写 `false`（或通过 WebUI「插件管理」页停用）才会生效。
+如果 `experimental_energy_exchange` 未在注册表中出现（例如自定义构建裁剪了该插件），`isEnabledOrUnknown` 返回 `true`，**门控会放行**而不是拦截。停用必须在 `config/plugins/experimental_energy_exchange.yml` 里显式写 `enabled: false`（或通过 WebUI「插件管理」页停用）才会生效。
 :::
 
 插件还提供 `PluginContext.isExperimentalFeatureEnabled(key)` 作为通用查询入口：

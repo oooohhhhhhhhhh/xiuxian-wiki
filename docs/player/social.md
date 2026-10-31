@@ -12,7 +12,7 @@
 | 玩家搜索 | `search` | `players` | `/查人` |
 
 ::: warning 模块门控
-以上模块名对应 `config/plugins.yml` 的 `built_in_plugins.*` 开关。模块停用后：
+以上模块名对应 `config/plugins/<模块名>.yml` 的 `enabled` 开关。模块停用后：
 指令在 `/帮助` 中隐藏，且 `CommandRegistry.get` 直接返回 `null`（指令不可用）。
 :::
 

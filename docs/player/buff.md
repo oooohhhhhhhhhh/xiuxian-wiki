@@ -309,10 +309,13 @@ private static void checkExpiredBuffs() {
 }
 ```
 
-`config/plugins.yml` 中的声明：
+`config/plugins/buff.yml` 中的声明：
 
 ```yaml
-  buff: true                   # Buff 系统（增益效果）
+enabled: true                   # Buff 系统（增益效果）
+
+# 过期增益「兜底」回收间隔（秒）
+expire_sweep_seconds: 60
 ```
 
 ::: warning 停用 `buff` 模块会让所有属性 Buff 变成永久

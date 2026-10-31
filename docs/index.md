@@ -37,7 +37,7 @@ features:
     details: OneBot 与 QQ 官方机器人、Minecraft 内嵌通道、REST API、WebSocket、Web 管理控制台，共用同一套玩法逻辑。
   - icon: 🧩
     title: 插件化
-    details: 25 个内置玩法模块可按需启停（另有 2 个实验性插件与 4 个消息通道开关），支持第三方插件 jar。停用后其指令、接口与定时任务一并失效。
+    details: 25 个内置玩法模块可按需启停（另有 2 个实验性插件与 4 个消息通道开关），每个插件一份配置文件（开关 + 可调参数），支持第三方插件 jar。停用后其指令、接口与定时任务一并失效。
   - icon: 🗄️
     title: 数据与运维
     details: SQLite / MySQL 双支持，启动时自动幂等迁移；玩家数据文件化存储；升级只需替换 jar。

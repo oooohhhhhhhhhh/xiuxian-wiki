@@ -166,7 +166,7 @@ OneBot 适配器有两种运行模式，由 `config.mode` 决定：
 ::: danger 通道有两道门，都要开
 | 层级 | 位置 | 作用 |
 | --- | --- | --- |
-| **类型级** | `config/plugins.yml` 的 `plugins.onebot` / `qq` / `minecraft` / `minecraft-player` | 整个通道类型的总开关（由 `AdapterChannelPlugin` 承载） |
+| **类型级** | `config/plugins/onebot.yml` / `qq.yml` / `minecraft.yml` / `minecraft-player.yml` 的 `enabled` | 整个通道类型的总开关（由 `AdapterChannelPlugin` 承载） |
 | **实例级** | `config/adapters.json` 的 `enabled` | 该具体实例是否启动 |
 
 **只开实例级不够**：类型级被停用时，`startType` 会被门控拒绝。
@@ -252,7 +252,7 @@ JSON 里写 `"port": "6700"`（字符串）也能被 `getInt` 正确读出；
 
 | 现象 | 检查 |
 | --- | --- |
-| 适配器没启动 | `adapters.json` 的 `enabled`；`plugins.yml` 对应类型开关；看启动日志有没有 `已启动适配器` |
+| 适配器没启动 | `adapters.json` 的 `enabled`；对应通道配置文件的 `enabled`；看启动日志有没有 `已启动适配器` |
 | OneBot 连不上 | `port` 是否被占用；OneBot 实现配置的反向 WS 地址是否指向本机 `6700` |
 | Minecraft 起不来 | `jar_path` 是否为空；`java_path` 是否可用；`ready_timeout_seconds` 是否太短 |
 | 改了配置没生效 | 调 `reloadAll()`，或重启；确认改的是 `<jar目录>/config/adapters.json` 而不是源码里的模板 |

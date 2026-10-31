@@ -396,20 +396,20 @@ public static long getLevelUpCost(int currentLevel) {
 `/宗门 war <宗门名>`（`declareWar`）。由实验性插件开关控制：
 
 ```java
-/** 实验性插件名：宗门战（开关见 config/plugins.yml 的 plugins.experimental_sect_war，默认关闭）。 */
+/** 实验性插件名：宗门战（开关见 config/plugins/experimental_sect_war.yml 的 enabled，默认关闭）。 */
 private static final String SECT_WAR_PLUGIN = "experimental_sect_war";
 
 if (!com.mtxgdn.plugin.BuiltInPluginRegistry.getInstance().isEnabledOrUnknown(SECT_WAR_PLUGIN)) {
     result.put("success", false);
-    result.put("message", "宗门战为实验性内容，当前未开放（可在 config/plugins.yml 中启用 experimental_sect_war）");
+    result.put("message", "宗门战为实验性内容，当前未开放（可在 config/plugins/experimental_sect_war.yml 中启用）");
     return result;
 }
 ```
 
-配置默认值（`src/main/resources/plugins.yml`）：
+配置默认值（`src/main/resources/plugin-configs/experimental_sect_war.yml`）：
 
 ```yaml
-experimental_sect_war: false         # 宗门战（实验性，默认关闭）
+enabled: false         # 宗门战（实验性，默认关闭）
 ```
 
 ::: warning 门控覆盖三个入口

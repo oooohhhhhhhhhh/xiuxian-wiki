@@ -8,12 +8,12 @@
 
 ### JDK 与启动方式
 
-| 项目 | 建议 |
-| --- | --- |
-| 运行时 | **Java 23 或更高**（`maven.compiler.release=23`），低版本直接 `UnsupportedClassVersionError` |
-| Maven | 仅构建机需要（3.8+），生产机不需要 |
-| 启动方式 | `--nogui` + 进程守护（systemd / Windows 服务 / 容器）；交互模式会等回车，不适合守护进程 |
-| 工作目录 | **必须**设为 jar 所在目录 |
+  项目   建议  
+  ---   ---  
+  运行时   **Java 23 或更高**（`maven.compiler.release=23`），低版本直接 `UnsupportedClassVersionError`  
+  Maven   仅构建机需要（3.8+），生产机不需要  
+  启动方式   `--nogui` + 进程守护（systemd / Windows 服务 / 容器）；交互模式会等回车，不适合守护进程  
+  工作目录   **必须**设为 jar 所在目录  
 
 ```bash
 cd /opt/xiuxian
@@ -37,12 +37,12 @@ systemd 部署请显式指定 `WorkingDirectory=/opt/xiuxian`。
 
 ### 内存
 
-| 场景 | 建议堆 | 说明 |
-| --- | --- | --- |
-| 小内存 VPS（1–2 GB） | `-Xmx256m` ~ `-Xmx512m` | 配合 `performance.low_memory: true`；`start-low-memory.bat` 用 `-Xms128m -Xmx256m -XX:+UseSerialGC -XX:MaxDirectMemorySize=32m` |
-| 常规生产 | `-Xms512m -Xmx2g` | `start.sh` 默认 `-Xms128m -Xmx512m` |
-| 玩家 / 挂单较多 | `-Xmx2g` 以上 | 主要吃在 Grizzly 线程栈与 HikariCP 连接 |
-| 线程与缓存 | `performance.*` | `grizzly_io_threads`（默认 2）、`grizzly_worker_cores`（4）、`grizzly_worker_max`（8）、`memory_log_entries`（默认 200） |
+  场景   建议堆   说明  
+  ---   ---   ---  
+  小内存 VPS（1–2 GB）   `-Xmx256m` ~ `-Xmx512m`   配合 `performance.low_memory: true`；`start-low-memory.bat` 用 `-Xms128m -Xmx256m -XX:+UseSerialGC -XX:MaxDirectMemorySize=32m`  
+  常规生产   `-Xms512m -Xmx2g`   `start.sh` 默认 `-Xms128m -Xmx512m`  
+  玩家 / 挂单较多   `-Xmx2g` 以上   主要吃在 Grizzly 线程栈与 HikariCP 连接  
+  线程与缓存   `performance.*`   `grizzly_io_threads`（默认 2）、`grizzly_worker_cores`（4）、`grizzly_worker_max`（8）、`memory_log_entries`（默认 200）  
 
 ### 监听地址与反向代理
 
@@ -62,13 +62,13 @@ systemd 部署请显式指定 `WorkingDirectory=/opt/xiuxian`。
 
 ### SQLite 还是 MySQL
 
-| 维度 | SQLite（默认） | MySQL |
-| --- | --- | --- |
-| 部署成本 | 零依赖，一个文件 | 需独立服务、账号、备份方案 |
-| 并发 | 单写者模型，写入串行 | 真并发写 |
-| 适用规模 | 单机、中小玩家量 | 多实例 / 高并发 / 需外部分析工具 |
-| 连接池 | `database.pool_max` 被夹到 2–8（代码强制 `min(8, max(2, pool_max))`） | 建议 8–32 |
-| 备份 | 拷 `xiuxian.db`（注意 WAL 侧车文件） | `mysqldump` |
+  维度   SQLite（默认）   MySQL  
+  ---   ---   ---  
+  部署成本   零依赖，一个文件   需独立服务、账号、备份方案  
+  并发   单写者模型，写入串行   真并发写  
+  适用规模   单机、中小玩家量   多实例 / 高并发 / 需外部分析工具  
+  连接池   `database.pool_max` 被夹到 2–8（代码强制 `min(8, max(2, pool_max))`）   建议 8–32  
+  备份   拷 `xiuxian.db`（注意 WAL 侧车文件）   `mysqldump`  
 
 SQLite 路径已经做过并发调优：`SQLiteDialect.initConnection()` 在每条连接上设置
 `PRAGMA foreign_keys = ON`、`PRAGMA busy_timeout = 5000`（写锁等 5 秒）、
@@ -79,12 +79,12 @@ SQLite 路径已经做过并发调优：`SQLiteDialect.initConnection()` 在每�
 仓库自带一套可直接落地的守护与容器文件，路径解析都对齐了 `Main.reportDeploymentPaths()`
 的「jar 目录 / 工作目录」规则：
 
-| 文件 | 用途 |
-| --- | --- |
-| `deploy/xiuxian-server.service` | systemd 服务单元（含安全加固与自动拉起） |
-| `Dockerfile` | 容器镜像（Maven wrapper 构建 + 运行时镜像） |
-| `docker-compose.yml` | Compose 编排（命名卷持久化 + 健康检查） |
-| `docker/entrypoint.sh` | 容器入口（把镜像内 jar 同步到 `/app` 再启动） |
+  文件   用途  
+  ---   ---  
+  `deploy/xiuxian-server.service`   systemd 服务单元（含安全加固与自动拉起）  
+  `Dockerfile`   容器镜像（Maven wrapper 构建 + 运行时镜像）  
+  `docker-compose.yml`   Compose 编排（命名卷持久化 + 健康检查）  
+  `docker/entrypoint.sh`   容器入口（把镜像内 jar 同步到 `/app` 再启动）  
 
 ### systemd（推荐 Linux 物理机/VM）
 
@@ -149,13 +149,13 @@ Compose 的要点：
 
 ## 需要备份的东西
 
-| 路径 | 内容 | 重要性 |
-| --- | --- | --- |
-| `xiuxian.db`（+ `-wal`、`-shm`）/ MySQL 库 | 全部业务数据 | **最高** |
-| `config/` | `application.yml`（含 `jwt.secret`）、`plugins.yml`、`adapters.json`、黑名单与群配置 | **高** |
-| `data/players/` | 每玩家一个 JSON 快照 | 中 |
-| `plugins/` | 第三方插件 jar | 中 |
-| `log/` | 运行日志 | 低 |
+  路径   内容   重要性  
+  ---   ---   ---  
+  `xiuxian.db`（+ `-wal`、`-shm`）/ MySQL 库   全部业务数据   **最高**  
+  `config/`   `application.yml`（含 `jwt.secret`）、`plugins/`、`adapters.json`、黑名单与群配置   **高**  
+  `data/players/`   每玩家一个 JSON 快照   中  
+  `plugins/`   第三方插件 jar   中  
+  `log/`   运行日志   低  
 
 数据库启用了 WAL，写入可能还在 `xiuxian.db-wal` 里没合并进主库，**在线只拷 `xiuxian.db`
 可能拿到不完整状态**：停服后拷贝（推荐），或不停服时把 `xiuxian.db`、`xiuxian.db-wal`、
@@ -191,14 +191,14 @@ java -Xms512m -Xmx2g -jar main-0.1.0.jar --nogui
 
 ### 4. 核对日志
 
-| 应出现 | 含义 |
-| --- | --- |
-| `[Config] 配置加载完成 (N 项)` | 外部配置已合并 |
-| `所有数据库表创建完成` | 建表 + 迁移成功（**关键**） |
-| `已为 N 个历史坊市挂单补齐到期时间（72 小时）` | 老挂单回填（见下节） |
-| `坊市已回收到期挂单 N 个，物品已退回卖家` | 集中退回发生 |
-| `服务已启动` / `API路由启动在 http://...` | HTTP 就绪 |
-| `管理控制台启动在 http://...` | 管理台就绪 |
+  应出现   含义  
+  ---   ---  
+  `[Config] 配置加载完成 (N 项)`   外部配置已合并  
+  `所有数据库表创建完成`   建表 + 迁移成功（**关键**）  
+  `已为 N 个历史坊市挂单补齐到期时间（72 小时）`   老挂单回填（见下节）  
+  `坊市已回收到期挂单 N 个，物品已退回卖家`   集中退回发生  
+  `服务已启动` / `API路由启动在 http://...`   HTTP 就绪  
+  `管理控制台启动在 http://...`   管理台就绪  
 
 随后抽查：后台「坊市管理」页能列出在售挂单（需 `admin.economy` 权限）；
 游戏内 `/坊市` 显示剩余时间、`/行情 <物品>` 返回成交统计。
@@ -220,32 +220,32 @@ java -Xms512m -Xmx2g -jar main-0.1.0.jar --nogui
 以及本版本新增的 `trade_price_history`、`world_bosses`/`world_boss_damage`；
 随后建立 4 个索引（均 `IF NOT EXISTS`）：
 
-| 索引 | 列 | 用途 |
-| --- | --- | --- |
-| `idx_trade_price_item_time` | `trade_price_history(item_key, sold_at)` | 行情查询 |
-| `idx_trade_listings_status_expires` | `trade_listings(status, expires_at)` | 到期回收任务（每 60 秒一次）与在售筛选 |
-| `idx_trade_listings_seller_status` | `trade_listings(seller_player_id, status)` | 查询某卖家的挂单 |
-| `idx_world_bosses_scope_expires` | `world_bosses(scope, expires_at)` | 世界 Boss 列表与惰性重建判断 |
+  索引   列   用途  
+  ---   ---   ---  
+  `idx_trade_price_item_time`   `trade_price_history(item_key, sold_at)`   行情查询  
+  `idx_trade_listings_status_expires`   `trade_listings(status, expires_at)`   到期回收任务（每 60 秒一次）与在售筛选  
+  `idx_trade_listings_seller_status`   `trade_listings(seller_player_id, status)`   查询某卖家的挂单  
+  `idx_world_bosses_scope_expires`   `world_bosses(scope, expires_at)`   世界 Boss 列表与惰性重建判断  
 
 `DatabaseMigration.executeMigrations()` 再补历史库缺的列与表：
 
-| 变更 | 目标 |
-| --- | --- |
-| 补列 | `verification_codes.sent_at` |
-| 补列 | `players.battle_strategy`、`current_location_id`、`last_travel_time`、`last_breakthrough_time` |
-| 补列 | `players.secret_realm_count`、`pvp_wins`、`craft_count`（称号计数） |
-| 补列 | `players_equipment.enhance_level` |
-| 补列 | `recipes.high_quality_rate`、`max_quality_rate`、`quality_bonus_rate` |
-| 补列 | `player_daily.pvp_count` |
-| 补列 | `farm_plots.wilted_time`、`root_bonus`、`season_modifier`、`pest_state`、`pest_time`、`crop_quality` |
-| 补列 | `trade_listings.expires_at`（本版本新增） |
-| 补列 | `players.breakthrough_pity`、`consolidation`（连败增益 / 极境层数） |
-| 补列 | `players.last_active_time`（跨通道活跃时间，宗主弃坑判定用） |
-| 补列 | `sects.leader_absent_since`、`contest_until`、`contest_challenger_id`、`contest_requested`（宗主继位 / 竞争期） |
-| 建表 | `player_buffs`、`farm_plots` |
-| 建表 | `world_bosses`、`world_boss_damage`（世界 Boss 与其伤害台账） |
-| 数据迁移 | `redeem_codes` 由 `is_active` 布尔列改为 `status` 字符串列（MySQL 会 DROP 旧列）；`players_items.quantity` 提升为 `BIGINT`（仅 MySQL）；把 `qq_bindings` 里含非数字字符的行（QQ 官方 openid）搬到 `qq_official_bindings` |
-| 表重建 | `qq_official_bindings` 增加 `app_id` 维度（建新表 → 拷数据 → 删旧表 → 改名，失败保留原表） |
+  变更   目标  
+  ---   ---  
+  补列   `verification_codes.sent_at`  
+  补列   `players.battle_strategy`、`current_location_id`、`last_travel_time`、`last_breakthrough_time`  
+  补列   `players.secret_realm_count`、`pvp_wins`、`craft_count`（称号计数）  
+  补列   `players_equipment.enhance_level`  
+  补列   `recipes.high_quality_rate`、`max_quality_rate`、`quality_bonus_rate`  
+  补列   `player_daily.pvp_count`  
+  补列   `farm_plots.wilted_time`、`root_bonus`、`season_modifier`、`pest_state`、`pest_time`、`crop_quality`  
+  补列   `trade_listings.expires_at`（本版本新增）  
+  补列   `players.breakthrough_pity`、`consolidation`（连败增益 / 极境层数）  
+  补列   `players.last_active_time`（跨通道活跃时间，宗主弃坑判定用）  
+  补列   `sects.leader_absent_since`、`contest_until`、`contest_challenger_id`、`contest_requested`（宗主继位 / 竞争期）  
+  建表   `player_buffs`、`farm_plots`  
+  建表   `world_bosses`、`world_boss_damage`（世界 Boss 与其伤害台账）  
+  数据迁移   `redeem_codes` 由 `is_active` 布尔列改为 `status` 字符串列（MySQL 会 DROP 旧列）；`players_items.quantity` 提升为 `BIGINT`（仅 MySQL）；把 `qq_bindings` 里含非数字字符的行（QQ 官方 openid）搬到 `qq_official_bindings`  
+  表重建   `qq_official_bindings` 增加 `app_id` 维度（建新表 → 拷数据 → 删旧表 → 改名，失败保留原表）  
 
 ::: tip 结论
 **不需要手工执行任何 SQL**，也不需要提前改配置。新增配置键（如 `market.*`）
@@ -284,11 +284,11 @@ java -Xms512m -Xmx2g -jar main-0.1.0.jar --nogui
 
 **回滚不需要还原数据库**，新增内容对旧版本完全无害：
 
-| 新增物 | 旧版本的行为 |
-| --- | --- |
-| `trade_listings.expires_at` 列 | 不读该列，挂单恢复"永不过期"语义 |
-| `trade_price_history` 表 | 不查询，表空着不影响 |
-| 3 个新索引 | 只占少量磁盘，不影响正确性 |
+  新增物   旧版本的行为  
+  ---   ---  
+  `trade_listings.expires_at` 列   不读该列，挂单恢复"永不过期"语义  
+  `trade_price_history` 表   不查询，表空着不影响  
+  3 个新索引   只占少量磁盘，不影响正确性  
 
 ::: warning 已发生的业务变更不会自己回退
 老挂单已经退回并标记 `expired`，换回旧 jar **不会**把它们重新上架。
@@ -297,13 +297,13 @@ java -Xms512m -Xmx2g -jar main-0.1.0.jar --nogui
 
 ## 备份策略与建议频率
 
-| 对象 | 频率 | 保留 | 备注 |
-| --- | --- | --- | --- |
-| 数据库（`xiuxian.db` / `mysqldump`） | **每日**至少一次；大服每 6 小时 | 7–30 天 | 升级、改配置、装插件**之前**各额外做一次 |
-| `config/` | 每次改动前后 | 全部历史 | 很小，全量留档 |
-| `data/players/` | 每日 | 7 天 | 后台可一键导出 |
-| `plugins/` | 每次新增 / 更新 | 全部历史 | 与 jar 版本对应留存 |
-| `log/` | 归档 | 14 天 | 排障用，量大 |
+  对象   频率   保留   备注  
+  ---   ---   ---   ---  
+  数据库（`xiuxian.db` / `mysqldump`）   **每日**至少一次；大服每 6 小时   7–30 天   升级、改配置、装插件**之前**各额外做一次  
+  `config/`   每次改动前后   全部历史   很小，全量留档  
+  `data/players/`   每日   7 天   后台可一键导出  
+  `plugins/`   每次新增 / 更新   全部历史   与 jar 版本对应留存  
+  `log/`   归档   14 天   排障用，量大  
 
 后台也提供整库导出与还原：`GET /api/admin/backup`（导出 JSON）、
 `POST /api/admin/backup/import`（单事务还原，失败自动回滚）、
@@ -312,11 +312,11 @@ java -Xms512m -Xmx2g -jar main-0.1.0.jar --nogui
 
 ## 日志位置与轮转
 
-| 配置 | 默认 | 说明 |
-| --- | --- | --- |
-| `logging.dir` | `log` | 日志目录（相对工作目录） |
-| `logging.level` | `DEBUG` | `TRACE`/`DEBUG`/`INFO`/`WARN`/`ERROR`；生产建议 `INFO` |
-| `logging.color` | `true` | 控制台 ANSI 着色；重定向到文件时建议关掉 |
+  配置   默认   说明  
+  ---   ---   ---  
+  `logging.dir`   `log`   日志目录（相对工作目录）  
+  `logging.level`   `DEBUG`   `TRACE`/`DEBUG`/`INFO`/`WARN`/`ERROR`；生产建议 `INFO`  
+  `logging.color`   `true`   控制台 ANSI 着色；重定向到文件时建议关掉  
 
 文件名规则（`GameLogger.initSharedFileWriter()`）是 `log/server-yyyyMMdd-HHmmss.log`，
 时间戳取**启动时刻**：即**每次启动一个新文件**，追加写入并**每行 flush**。
@@ -332,21 +332,21 @@ java -Xms512m -Xmx2g -jar main-0.1.0.jar --nogui
 
 全部由 daemon 线程承载，**不阻止 JVM 退出**。
 
-| 任务 | 线程名 | 首次执行 | 周期 | 相关配置 |
-| --- | --- | --- | --- | --- |
-| 坊市到期挂单回收 | `trade-market-sweeper` | 启动后 **20 秒** | **每 60 秒**（硬编码） | `market.listing_duration_hours` |
-| 坊市价格历史清理 | `trade-market-sweeper` | 启动后 5 分钟 | 每 `market.price_history_cleanup_interval_hours` 小时（默认 6） | `market.price_history_keep_days`（默认 30） |
-| 玩家数据文件落盘 | `player-data-sync` | 启动后 N 秒 | 每 `player-data.auto-sync-seconds` 秒（默认 30，设 0 关闭） | `player-data.enabled`、`player-data.dir` |
-| 限流窗口 / Token 黑名单清理 | `cleanup-scheduler` | 启动后 5 分钟 | **每 5 分钟**（硬编码） | 分别清理 1 小时前的限流记录与 24 小时前的吊销记录 |
-| 季节更替检查 | — | 启动后 10 秒 | 每 10 秒 | `season.mode`、`season.cycle_hours` |
-| 自动疗伤 / 洞府灵力 | — | 启动后 10 秒 | 每 10 秒 | 受 `player`、`cave` 模块开关门控 |
-| 阵法 tick | — | 启动后 60 秒 | 每 60 秒 | 受 `formation` 模块开关门控 |
-| 农田地块更新 / Buff 过期检查 | — | 启动后 1 秒 | 每 1 秒 | 受 `farm`、`buff` 模块开关门控 |
-| Buff 内存缓存清理 | — | 启动后 30 秒 | 每 30 秒 | 同上 |
-| OneBot 黑名单禁言续期 | — | 启动后 12 小时 | 每 12 小时 | 仅 OneBot 通道运行时 |
-| QQ 官方心跳 | `QQBot-Heartbeat` | 立即 | 每 `heartbeatIntervalMs`（缺省 40 秒） | 仅 QQ 官方通道启用时 |
-| 插件 jar 文件监听 | `plugin-file-watcher` | 启动后 3 秒 | 每 3 秒 | **仅当 `plugins.hot_swap: true`** |
-| 宗门宗主继位扫描 | `sect-succession-sweeper` | 启动后 **45 秒** | 每 `sect.succession_sweep_seconds` 秒（默认 600，最小 30） | `sect.leader_absent_days`、`sect.contest_days`、`sect.contest_level_gap` |
+  任务   线程名   首次执行   周期   相关配置  
+  ---   ---   ---   ---   ---  
+  坊市到期挂单回收   `trade-market-sweeper`   启动后 **20 秒**   **每 60 秒**（硬编码）   `market.listing_duration_hours`  
+  坊市价格历史清理   `trade-market-sweeper`   启动后 5 分钟   每 `market.price_history_cleanup_interval_hours` 小时（默认 6）   `market.price_history_keep_days`（默认 30）  
+  玩家数据文件落盘   `player-data-sync`   启动后 N 秒   每 `player-data.auto-sync-seconds` 秒（默认 30，设 0 关闭）   `player-data.enabled`、`player-data.dir`  
+  限流窗口 / Token 黑名单清理   `cleanup-scheduler`   启动后 5 分钟   **每 5 分钟**（硬编码）   分别清理 1 小时前的限流记录与 24 小时前的吊销记录  
+  季节更替检查   —   启动后 10 秒   每 10 秒   `season.mode`、`season.cycle_hours`  
+  自动疗伤 / 洞府灵力   —   启动后 10 秒   每 10 秒   受 `player`、`cave` 模块开关门控  
+  阵法 tick   —   启动后 60 秒   每 60 秒   受 `formation` 模块开关门控  
+  农田地块更新 / Buff 过期检查   —   启动后 1 秒   每 1 秒   受 `farm`、`buff` 模块开关门控  
+  Buff 内存缓存清理   —   启动后 30 秒   每 30 秒   同上  
+  OneBot 黑名单禁言续期   —   启动后 12 小时   每 12 小时   仅 OneBot 通道运行时  
+  QQ 官方心跳   `QQBot-Heartbeat`   立即   每 `heartbeatIntervalMs`（缺省 40 秒）   仅 QQ 官方通道启用时  
+  插件 jar 文件监听   `plugin-file-watcher`   启动后 3 秒   每 3 秒   **仅当 `plugins.hot_swap: true`**  
+  宗门宗主继位扫描   `sect-succession-sweeper`   启动后 **45 秒**   每 `sect.succession_sweep_seconds` 秒（默认 600，最小 30）   `sect.leader_absent_days`、`sect.contest_days`、`sect.contest_level_gap`  
 
 ::: tip 关于「坊市回收周期」的常见误解
 `market.price_history_cleanup_interval_hours` 控制的是**价格历史清理**任务的间隔，
@@ -365,15 +365,15 @@ WebUI 里停用模块后，其指令与接口**立刻**失效，但**已启动�
 **现象**：启动即失败，日志出现 `Address already in use` / `BindException`。
 
 ```bash
-ss -lntp | grep -E '8080|6700|25565'          # Linux
-netstat -ano | findstr ":8080"                 # Windows
+ss -lntp   grep -E '8080 6700 25565'          # Linux
+netstat -ano   findstr ":8080"                 # Windows
 ```
 
-| 端口 | 来源 | 改哪里 |
-| --- | --- | --- |
-| 8080 | `server.port` | `config/application.yml` |
-| 6700 | OneBot 实例 `config.port` | `config/adapters.json` |
-| 25565 | `motd.port` | `config/application.yml` |
+  端口   来源   改哪里  
+  ---   ---   ---  
+  8080   `server.port`   `config/application.yml`  
+  6700   OneBot 实例 `config.port`   `config/adapters.json`  
+  25565   `motd.port`   `config/application.yml`  
 
 `AdapterManager.startOneBot()` 固定用 `0.0.0.0:6700` 起监听，与 MC 服务端默认端口相同，
 同机部署注意错开。
@@ -382,12 +382,12 @@ netstat -ano | findstr ":8080"                 # Windows
 
 `JwtUtil.init(isInstallMode)` 的四种结局：
 
-| 情况 | 结果 |
-| --- | --- |
-| 已配置且 ≥ 32 字节 | 正常启动，打印 `✓ JWT 密钥已从配置加载` |
-| 已配置但 < 32 字节 | **拒绝启动**：`jwt.secret 长度不足！需要至少 32 字节` |
-| 为空 + 未完成安装（无 `config/.installed`） | 生成临时密钥启动并告警；重启后 Token 全失效 |
-| 为空 + 已完成安装（`config/.installed` 存在） | **拒绝启动**：`jwt.secret 未配置！` → `System.exit(1)` |
+  情况   结果  
+  ---   ---  
+  已配置且 ≥ 32 字节   正常启动，打印 `✓ JWT 密钥已从配置加载`  
+  已配置但 < 32 字节   **拒绝启动**：`jwt.secret 长度不足！需要至少 32 字节`  
+  为空 + 未完成安装（无 `config/.installed`）   生成临时密钥启动并告警；重启后 Token 全失效  
+  为空 + 已完成安装（`config/.installed` 存在）   **拒绝启动**：`jwt.secret 未配置！` → `System.exit(1)`  
 
 用 `openssl rand -base64 48` 生成一个 ≥ 32 字节的密钥。
 
@@ -418,23 +418,23 @@ netstat -ano | findstr ":8080"                 # Windows
 
 ## 停机与重启
 
-| 方式 | 行为 |
-| --- | --- |
-| 交互模式按 Enter | 停适配器 → 停 MOTD → `server.shutdownNow()` |
-| `--nogui` 下 Ctrl+C / `SIGTERM` | 触发停机钩子（含玩家数据 flush、连接池关闭） |
-| `POST /api/admin/shutdown` | 需 `admin.database.reset_all` 权限；异步停服并 `System.exit(0)` |
-| QQ `/重启`（`/restart`） | 需 `admin.shutdown` 权限（SUPER_ADMIN）；按 `restart.mode` 决定"只退出"还是"自己拉起新进程" |
-| 安装向导保存配置后 | 自动重启：先起新进程，轮询 `/api/game/status` 就绪（最多 60 秒）再退出旧进程，避免端口空窗 |
+  方式   行为  
+  ---   ---  
+  交互模式按 Enter   停适配器 → 停 MOTD → `server.shutdownNow()`  
+  `--nogui` 下 Ctrl+C / `SIGTERM`   触发停机钩子（含玩家数据 flush、连接池关闭）  
+  `POST /api/admin/shutdown`   需 `admin.database.reset_all` 权限；异步停服并 `System.exit(0)`  
+  QQ `/重启`（`/restart`）   需 `admin.shutdown` 权限（SUPER_ADMIN）；按 `restart.mode` 决定"只退出"还是"自己拉起新进程"  
+  安装向导保存配置后   自动重启：先起新进程，轮询 `/api/game/status` 就绪（最多 60 秒）再退出旧进程，避免端口空窗  
 
 ### `restart.mode`：重启到底是"退出"还是"重启"
 
 `/重启` 与安装向导的重启都读 `restart.mode`（默认 `auto`）：
 
-| 取值 | 行为 | 什么时候用 |
-| --- | --- | --- |
-| `auto` | 自动判断：检测到 systemd（`INVOCATION_ID`）、容器（`/.dockerenv` 等）时**只退出**，由托管方拉起；否则自己拉起新进程 | 默认，几乎总是对的 |
-| `supervised` | 强制"只退出" | systemd 单元需 `Restart=always`，容器需 restart 策略，面板需开启自动重启 |
-| `self-spawn` | 强制自己拉起新进程 | 裸跑、或面板托管但没开自动重启 |
+  取值   行为   什么时候用  
+  ---   ---   ---  
+  `auto`   自动判断：检测到 systemd（`INVOCATION_ID`）、容器（`/.dockerenv` 等）时**只退出**，由托管方拉起；否则自己拉起新进程   默认，几乎总是对的  
+  `supervised`   强制"只退出"   systemd 单元需 `Restart=always`，容器需 restart 策略，面板需开启自动重启  
+  `self-spawn`   强制自己拉起新进程   裸跑、或面板托管但没开自动重启  
 
 ::: danger `supervised` 选错等于关服
 `supervised` 只是退出，**不会自己回来**。若你既不是 systemd 也不是容器托管，

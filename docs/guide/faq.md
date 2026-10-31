@@ -13,7 +13,8 @@
 2. **这个键是否需要重启**。`server.*`、`database.*`、`jwt.secret`、`logging.*`、
    `performance.*`、`market.*` 都只在**启动时读取一次**，必须重启进程。
 3. **是不是被别的配置覆盖**。插件开关优先级是
-   `config/plugins.yml` > jar 内模板 > `application.yml` 的旧 `built_in_plugins.*`。
+   `config/plugins/<插件名>.yml` > `config/application.yml` > jar 内模板；
+   旧 `config/plugins.yml` 与 `built_in_plugins.*` 仅作兜底。
 
 **结论**：绝大多数"不生效"是①文件位置错，或②忘了重启。
 
@@ -236,17 +237,18 @@ systemd 则设置 `WorkingDirectory=/opt/xiuxian`。
 ## 18. 如何关闭某个玩法？
 
 ```yaml
-# config/plugins.yml
-plugins:
-  farm: false                   # 关掉农场
-  experimental_sect_war: false  # 关掉宗门战（默认就是关）
+# config/plugins/farm.yml
+enabled: false                # 关掉农场
+
+# config/plugins/experimental_sect_war.yml
+enabled: false                # 关掉宗门战（默认就是关）
 ```
 
-或在管理后台「插件管理」页直接切换 —— 选择会**立即写回 `config/plugins.yml`**
+或在管理后台「插件管理」页直接切换 —— 选择会**立即写回该插件自己的配置文件**
 （保留注释），重启后依然生效。实验性玩法 `experimental_sect_war`（默认 `false`）与
 `experimental_energy_exchange`（默认 `true`）与稳定玩法开关分离，可整体关闭。
 
-**结论**：改 `config/plugins.yml` 的 `plugins.<模块名>`，或在 WebUI「插件管理」页切换。
+**结论**：改 `config/plugins/<模块名>.yml` 的 `enabled`，或在 WebUI「插件管理」页切换。
 
 ## 19. 停用某个通道后，QQ 机器人为什么连不上了？
 
@@ -254,13 +256,13 @@ plugins:
 
 | 层级 | 位置 | 效果 |
 | --- | --- | --- |
-| 类型级 | `config/plugins.yml` 的 `plugins.onebot` / `plugins.qq` / `plugins.minecraft` / `plugins.minecraft-player` | 关闭后**该类型下全部实例**停止运行 |
+| 类型级 | `config/plugins/onebot.yml` / `qq.yml` / `minecraft.yml` / `minecraft-player.yml` 的 `enabled` | 关闭后**该类型下全部实例**停止运行 |
 | 实例级 | `config/adapters.json` 里该实例的 `enabled` | 只控制这一个实例 |
 
 类型级关闭时日志会打印
 `适配器类型 onebot 已停用（内置插件开关关闭），跳过启动: onebot-default`。
 
-**结论**：先查 `plugins.yml` 的类型级开关，再查 `adapters.json` 的实例 `enabled`。
+**结论**：先查对应通道配置文件的 `enabled`，再查 `adapters.json` 的实例 `enabled`。
 
 ## 20. QQ 机器人连不上怎么查？
 
@@ -270,7 +272,7 @@ OneBot 通道默认形态是**服务端起 WS 服务、机器人实现作为客�
 1. **日志有没有这两行** —— 没有说明适配器根本没启动：
    `适配器 onebot-default (onebot) 已启动` 与
    `OneBot WebSocket: ws://0.0.0.0:6700/onebot`
-2. `config/plugins.yml` 里 `plugins.onebot` 是不是 `true`
+2. `config/plugins/onebot.yml` 里 `enabled` 是不是 `true`
 3. `config/adapters.json` 里 `onebot-default` 的 `enabled` 是不是 `true`、`mode` 是不是 `ws_server`
 4. **端口是否被占用**（6700 与 Minecraft 默认端口相同，同机部署容易撞）：`ss -lntp | grep 6700`
 5. **机器人侧填的地址对不对**：必须是 `ws://<服务器IP>:6700/onebot`，路径 `/onebot` 不能省
@@ -286,12 +288,13 @@ OneBot 通道默认形态是**服务端起 WS 服务、机器人实现作为客�
 | 维度 | 内置插件（24 玩法 + 2 实验性 + 4 通道） | 第三方插件 `plugins/*.jar` |
 | --- | --- | --- |
 | 来源 | 随服务端 jar 打包（`com.mtxgdn.plugin.builtin`） | 你自己放进 `plugins/` 目录 |
-| 开关 | `config/plugins.yml` 的 `plugins.<name>` | 插件自身的启停状态，**不在 `plugins.yml` 里** |
+| 开关 | `config/plugins/<name>.yml` 的 `enabled` | 插件自身的启停状态，**不在插件配置目录里** |
 | 加载 | 启动时由 `BuiltInPluginRegistry` 注册并按开关启用 | 启动时 `PluginManager.loadPlugins()` 扫描目录加载 |
 | 运行时操作 | WebUI「插件管理」页可即时启停 | 可加载 / 卸载 / 热重载单个 jar |
 | 文件监听 | — | `plugins.hot_swap: true` 时每 3 秒扫描目录，自动加载新增/修改的 jar |
 
-**结论**：内置插件编译在 jar 内、用 `plugins.yml` 开关；第三方插件是外部 jar、自己管启停。
+**结论**：内置插件编译在 jar 内、用 `config/plugins/<name>.yml` 的 `enabled` 开关；
+第三方插件是外部 jar、自己管启停。
 
 ## 22. 如何只跑 SQLite？
 

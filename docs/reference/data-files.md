@@ -7,7 +7,7 @@
 
 | 基准 | 文件 |
 | --- | --- |
-| **JAR 所在目录** | `config/application.yml`、`config/plugins.yml` |
+| **JAR 所在目录** | `config/application.yml`、`config/plugins/` |
 | **当前工作目录（CWD）** | `config/adapters.json`、`xiuxian.db`、`data/`、`log/`、`plugins/` |
 
 **所以请始终从 jar 所在目录启动服务端**，否则上面两类文件会分裂到两个地方。
@@ -31,7 +31,8 @@ JAR 目录: /opt/xiuxian
 | 路径 | 用途 |
 | --- | --- |
 | `application.yml` | 配置**模板**，首次启动释放到 `config/application.yml` |
-| `plugins.yml` | 插件开关**模板**，首次启动释放到 `config/plugins.yml` |
+| `plugin-configs/<插件名>.yml` | 插件配置**模板**（31 份），首次启动释放到 `config/plugins/<插件名>.yml` |
+| `plugins.yml` | ⚠️ **旧版插件开关模板**，现仅作兜底 |
 | `built_in_plugins.yml` | ⚠️ **旧版模板**，全部注释掉，**不是权威来源** |
 | `plugin.yml` | Minecraft 桥接插件的 Bukkit 描述文件（不是本服务端的配置） |
 | `config/blacklist.yml` | 默认黑名单 |
@@ -42,15 +43,20 @@ JAR 目录: /opt/xiuxian
 | `webadmin/**` | 管理后台静态资源 |
 | `plugin-template/**` | 外部插件脚手架模板 |
 
-::: warning `built_in_plugins.yml` 已废弃
-它是旧版本的插件开关文件，内容**全部被注释掉**（16 条）。
+::: warning 两个旧模板都已废弃
+`built_in_plugins.yml` 与 `plugins.yml` 都是旧版本的插件开关文件。
+现在**权威的开关位置**是各插件自己的配置文件
+`config/plugins/<插件名>.yml`（31 个文件，每个含 `enabled`）。
 
-现在权威的开关文件是 **`plugins.yml`**（31 个键）。
-如果你在 `built_in_plugins.yml` 里改开关，**不会生效**。
+在旧模板或旧位置里改开关**不会生效**（它们只作为只读兜底）。
+取值优先级：
 
-`plugins.yml` 的注释里也写明了取值优先级：
-`config/plugins.yml` > jar 内模板 > 旧配置只读兜底
-（`application.yml` 的 `built_in_plugins.*` 与 `config/experimental.yml` 的 `experimental.*`）。
+```
+-D 系统属性 > 运行期覆盖 > config/plugins/<插件名>.yml
+           > config/application.yml > jar 内模板
+```
+
+详见[插件配置](/guide/plugins)。
 :::
 
 ## 二、运行目录文件
@@ -59,19 +65,22 @@ JAR 目录: /opt/xiuxian
 
 | 文件 | 路径基准 | 是否自动生成 | 说明 |
 | --- | --- | --- | --- |
-| `config/application.yml` | **JAR 目录** | ✅ 从 jar 模板释放 | 主配置 |
-| `config/plugins.yml` | **JAR 目录** | ✅ 从 jar 模板释放 | 插件开关 |
+| `config/application.yml` | **JAR 目录** | ✅ 从 jar 模板释放 | 通用设置 |
+| `config/plugins/<插件名>.yml` | **JAR 目录** | ✅ 从 jar 模板释放 | **每个插件一份**：开关 + 参数（共 31 个） |
+| `config/plugins.yml` | **JAR 目录** | ⚠️ 新版不再生成 | **旧版**插件开关，仅作兜底 |
 | `config/adapters.json` | **工作目录** | ✅ 写默认配置 | 消息通道实例 |
 | `config/.installed` | 工作目录 | 安装完成时创建 | 安装锁 |
 | `config/game/wilderness_map.json` | JAR 目录 | ✅ 从 jar 模板释放 | 野外地图配置（`GameConfigLoader` 释放；见[野外（无限分片世界）](/player/wilderness)） |
 | `config/newbie_reward.json` | JAR 目录 | ✅ 从内置默认释放 | 新手奖励配置（默认 `enabled=false`，见[角色创建](/player/account)） |
-| `config/experimental.yml` | 同 `plugins.yml` 的父目录 | ❌ | **旧版**实验性开关，可删 |
+| `config/experimental.yml` | 同 `config/plugins/` 的父目录 | ❌ | **旧版**实验性开关，可删 |
 
 ::: tip 旧配置会自动迁移
 从旧版本升级时，`application.yml` 的 `built_in_plugins.*` 与
-`config/experimental.yml` 的 `experimental.*` 会被**自动迁移**到 `plugins.yml`。
+`config/experimental.yml` 的 `experimental.*` 会被**自动迁移**到对应插件的
+配置文件（`config/plugins/<插件名>.yml` 的 `enabled`）。
 
 迁移完成后这两个旧位置就只是只读兜底，文件本身可以自行清理。
+已存在的插件配置文件**不会被覆盖**，你改过的值不会丢。
 :::
 
 ### 数据类
@@ -226,10 +235,10 @@ YAML 里请写 `true` / `false`，不要写 `yes` / `no` / `1` / `0`。
 | 检查项 | 命令 / 位置 |
 | --- | --- |
 | 工作目录 = jar 目录 | 看启动日志的 `JAR 目录` 与 `工作目录` 是否相同 |
-| 配置已生成 | `ls config/` 应有 `application.yml`、`plugins.yml` |
+| 配置已生成 | `ls config/` 应有 `application.yml`、`plugins/` 目录（31 个 yml） |
 | 数据库就位 | `ls -lh xiuxian.db`（SQLite） |
 | 日志在写 | `tail -f log/*.log` |
-| 插件开关 | `config/plugins.yml` 的 31 个键 |
+| 插件开关 | `config/plugins/<插件名>.yml` 的 `enabled` |
 | 通道实例 | `config/adapters.json` 的 `enabled` |
 | 安装锁 | `config/.installed` 存在表示已安装完成 |
 
@@ -250,7 +259,7 @@ ExecStart=/usr/bin/java -jar /opt/xiuxian/main-0.1.0.jar
 | --- | --- | --- |
 | 🔴 必须 | `xiuxian.db` | 全部玩家数据（SQLite 时） |
 | 🔴 必须 | `config/application.yml` | 含 `jwt.secret`、管理员密码哈希、数据库口令 |
-| 🟡 建议 | `config/plugins.yml` | 插件开关 |
+| 🟡 建议 | `config/plugins/` | 插件开关与参数（31 个文件） |
 | 🟡 建议 | `config/game/` | 各玩法配置（含 `wilderness_map.json`；不含则用 jar 内默认） |
 | 🟡 建议 | `data/wilderness/` | 野外探索分片文件（丢失会回到未探索状态，`wilderness.dir` 指向它） |
 | 🟡 建议 | `config/adapters.json` | 通道配置 |

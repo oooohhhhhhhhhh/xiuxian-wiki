@@ -36,13 +36,13 @@ ws://127.0.0.1:8080/
 }
 ```
 
-| 字段 | 说明 |
-| --- | --- |
-| `msgId` | 消息序号。**客户端上行的 `msgId` 会被服务端原样回填**，用于请求-响应配对 |
-| `type` | 动作名（见下文动作表） |
-| `code` | **`0` 表示成功**，非 0 为错误码（与 REST 同一套 `GameErrorCode`） |
-| `message` | 提示信息 |
-| `data` | 业务数据，对象或 `null` |
+  字段   说明  
+  ---   ---  
+  `msgId`   消息序号。**客户端上行的 `msgId` 会被服务端原样回填**，用于请求-响应配对  
+  `type`   动作名（见下文动作表）  
+  `code`   **`0` 表示成功**，非 0 为错误码（与 REST 同一套 `GameErrorCode`）  
+  `message`   提示信息  
+  `data`   业务数据，对象或 `null`  
 
 ::: danger 成功码是 0，不是 200
 与 REST 一致，判定成功用 `code == 0`。错误码清单见 [REST API · 错误码](/dev/rest-api#错误码)。
@@ -82,13 +82,13 @@ close code `4009`（"消息过大"）断开连接。
 
 认证流程：
 
-| 步骤 | 检查 | 失败行为 |
-| --- | --- | --- |
-| 1 | `type` 是否为 `auth` | 回 `AUTH_NOT_LOGGED_IN`，close `4001` |
-| 2 | `data.token` 是否存在 | 回 `PARAM_MISSING`，close `4001` |
-| 3 | Token 是否有效（`JwtUtil.validateToken`） | 回 `AUTH_INVALID_TOKEN`，close `4001` |
-| 4 | Token 是否已被吊销（`TokenBlacklist`） | 回 `AUTH_INVALID_TOKEN`，close `4001` |
-| 5 | 该账号是否已有连接 | **关闭旧连接**，close `4002` |
+  步骤   检查   失败行为  
+  ---   ---   ---  
+  1   `type` 是否为 `auth`   回 `AUTH_NOT_LOGGED_IN`，close `4001`  
+  2   `data.token` 是否存在   回 `PARAM_MISSING`，close `4001`  
+  3   Token 是否有效（`JwtUtil.validateToken`）   回 `AUTH_INVALID_TOKEN`，close `4001`  
+  4   Token 是否已被吊销（`TokenBlacklist`）   回 `AUTH_INVALID_TOKEN`，close `4001`  
+  5   该账号是否已有连接   **关闭旧连接**，close `4002`  
 
 ::: warning 同一账号只能有一个连接
 重复登录会**踢掉旧连接**（close `4002`，"账号在其它位置登录"）。
@@ -105,12 +105,12 @@ close code `4009`（"消息过大"）断开连接。
 
 ### 断开码
 
-| Close code | 含义 |
-| --- | --- |
-| `4001` | 认证失败（未认证、token 无效、token 已吊销、消息格式错误） |
-| `4002` | 账号在其它位置登录 |
-| `4009` | 消息过大（超过 `network.ws_max_message_size`） |
-| `1001` | 服务器关闭 |
+  Close code   含义  
+  ---   ---  
+  `4001`   认证失败（未认证、token 无效、token 已吊销、消息格式错误）  
+  `4002`   账号在其它位置登录  
+  `4009`   消息过大（超过 `network.ws_max_message_size`）  
+  `1001`   服务器关闭  
 
 ## 动作表
 
@@ -119,141 +119,141 @@ close code `4009`（"消息过大"）断开连接。
 
 ### 会话
 
-| 动作 | 说明 |
-| --- | --- |
-| `auth` | 认证（必须是第一条消息） |
-| `heartbeat` | 心跳 |
+  动作   说明  
+  ---   ---  
+  `auth`   认证（必须是第一条消息）  
+  `heartbeat`   心跳  
 
 ### 角色
 
-| 动作 | 说明 |
-| --- | --- |
-| `player_info` | 查询角色信息 |
-| `heal` | 疗伤 |
-| `morning_cultivation` | 晨修 |
-| `breakthrough` | 境界突破 |
+  动作   说明  
+  ---   ---  
+  `player_info`   查询角色信息  
+  `heal`   疗伤  
+  `morning_cultivation`   晨修  
+  `breakthrough`   境界突破  
 
 ### 修炼
 
-| 动作 | 说明 |
-| --- | --- |
-| `cultivate_start` | 开始打坐/闭关 |
-| `cultivate_stop` | 停止修炼并结算 |
-| `season_info` | 查询季节信息 |
+  动作   说明  
+  ---   ---  
+  `cultivate_start`   开始打坐/闭关  
+  `cultivate_stop`   停止修炼并结算  
+  `season_info`   查询季节信息  
 
 ### 背包与装备
 
-| 动作 | 说明 |
-| --- | --- |
-| `inventory` | 查看背包 |
-| `item_use` | 使用物品 |
-| `item_registry` | 物品图鉴 |
-| `equipment_enhance` | 装备强化 |
+  动作   说明  
+  ---   ---  
+  `inventory`   查看背包  
+  `item_use`   使用物品  
+  `item_registry`   物品图鉴  
+  `equipment_enhance`   装备强化  
 
 ### 探索与秘境
 
-| 动作 | 说明 |
-| --- | --- |
-| `exploration` | 游历 |
-| `secret_realm_areas` | 秘境列表 |
-| `secret_realm_enter` | 进入秘境 |
+  动作   说明  
+  ---   ---  
+  `exploration`   游历  
+  `secret_realm_areas`   秘境列表  
+  `secret_realm_enter`   进入秘境  
 
 ### 功法
 
-| 动作 | 说明 |
-| --- | --- |
-| `techniques` | 全部功法 |
-| `my_techniques` | 我的功法 |
-| `technique_learn` | 学习功法 |
-| `technique_equip` | 装备功法 |
-| `technique_unequip` | 卸下功法 |
-| `technique_upgrade` | 升级功法 |
+  动作   说明  
+  ---   ---  
+  `techniques`   全部功法  
+  `my_techniques`   我的功法  
+  `technique_learn`   学习功法  
+  `technique_equip`   装备功法  
+  `technique_unequip`   卸下功法  
+  `technique_upgrade`   升级功法  
 
 ### 制造
 
-| 动作 | 说明 |
-| --- | --- |
-| `crafting_recipes` | 配方列表 |
-| `crafting_craft` | 炼制 |
+  动作   说明  
+  ---   ---  
+  `crafting_recipes`   配方列表  
+  `crafting_craft`   炼制  
 
 ### 聊天
 
-| 动作 | 说明 |
-| --- | --- |
-| `chat` | 发送世界聊天 |
-| `chat_private` | 发送私聊 |
-| `chat_history` | 拉取聊天记录 |
+  动作   说明  
+  ---   ---  
+  `chat`   发送世界聊天  
+  `chat_private`   发送私聊  
+  `chat_history`   拉取聊天记录  
 
 ### 好友
 
-| 动作 | 说明 |
-| --- | --- |
-| `friend_list` | 好友列表 |
-| `friend_pending` | 待处理申请 |
-| `friend_add` | 添加好友 |
-| `friend_accept` | 接受申请 |
-| `friend_reject` | 拒绝申请 |
-| `friend_remove` | 删除好友 |
+  动作   说明  
+  ---   ---  
+  `friend_list`   好友列表  
+  `friend_pending`   待处理申请  
+  `friend_add`   添加好友  
+  `friend_accept`   接受申请  
+  `friend_reject`   拒绝申请  
+  `friend_remove`   删除好友  
 
 ### 排行
 
-| 动作 | 说明 |
-| --- | --- |
-| `rank` | 排行榜。通过 `data` 指定榜单：`power`（战力）、`wealth`（财富） |
+  动作   说明  
+  ---   ---  
+  `rank`   排行榜。通过 `data` 指定榜单：`power`（战力）、`wealth`（财富）  
 
 ### 宗门
 
-| 动作 | 说明 |
-| --- | --- |
-| `sect_list` | 宗门列表 |
-| `sect_info` | 宗门详情 |
-| `sect_members` | 宗门成员 |
-| `sect_create` | 创建宗门 |
-| `sect_join` | 申请加入 |
-| `sect_applications` | 入宗申请列表 |
-| `sect_approve` | 批准申请 |
-| `sect_reject` | 拒绝申请 |
-| `sect_leave` | 退出宗门 |
-| `sect_kick` | 踢出成员 |
-| `sect_appoint` | 任命职位 |
-| `sect_warehouse` | 宗门仓库 |
-| `sect_donate` | 捐献 |
-| `sect_take` | 从仓库取出 |
-| `sect_disband` | 解散宗门 |
-| `sect_levelup` | 宗门升级 |
-| `sect_transfer` | 转让宗主 |
-| `sect_war` | 宗门战（实验性插件，默认关闭） |
-| `sect_top` | 宗门排行 |
+  动作   说明  
+  ---   ---  
+  `sect_list`   宗门列表  
+  `sect_info`   宗门详情  
+  `sect_members`   宗门成员  
+  `sect_create`   创建宗门  
+  `sect_join`   申请加入  
+  `sect_applications`   入宗申请列表  
+  `sect_approve`   批准申请  
+  `sect_reject`   拒绝申请  
+  `sect_leave`   退出宗门  
+  `sect_kick`   踢出成员  
+  `sect_appoint`   任命职位  
+  `sect_warehouse`   宗门仓库  
+  `sect_donate`   捐献  
+  `sect_take`   从仓库取出  
+  `sect_disband`   解散宗门  
+  `sect_levelup`   宗门升级  
+  `sect_transfer`   转让宗主  
+  `sect_war`   宗门战（实验性插件，默认关闭）  
+  `sect_top`   宗门排行  
 
 ### 地图
 
-| 动作 | 说明 |
-| --- | --- |
-| `map_surroundings` | 当前地点周边 |
-| `map_locations` | 全部地点 |
-| `map_travel` | 移动到目标地点 |
+  动作   说明  
+  ---   ---  
+  `map_surroundings`   当前地点周边  
+  `map_locations`   全部地点  
+  `map_travel`   移动到目标地点  
 
 ## 模块门控
 
 与 REST 一样，WS 动作也会被**插件开关**门控。
 `wsModuleForAction(type)` 定义了动作到模块的映射：
 
-| 动作模式 | 所属模块（`plugins.yml` 键） |
-| --- | --- |
-| `sect_war` | `experimental_sect_war` |
-| `sect_*` | `sect` |
-| `secret_realm_*` | `secret_realm` |
-| `exploration` | `exploration` |
-| `friend_*` | `friend` |
-| `technique_*`、`techniques`、`my_techniques` | `technique` |
-| `crafting_*` | `crafting` |
-| `map_*` | `map` |
-| `chat`、`chat_private`、`chat_history` | `chat` |
-| `rank` | `rank` |
-| `heal`、`player_info` | `player` |
-| `cultivate_start`、`cultivate_stop`、`breakthrough`、`season_info` | `cultivation` |
-| `inventory`、`item_use`、`item_registry`、`equipment_enhance` | `inventory` |
-| 其他（如 `heartbeat`、`auth`） | 不门控 |
+  动作模式   所属模块（`config/plugins/<模块名>.yml`）  
+  ---   ---  
+  `sect_war`   `experimental_sect_war`  
+  `sect_*`   `sect`  
+  `secret_realm_*`   `secret_realm`  
+  `exploration`   `exploration`  
+  `friend_*`   `friend`  
+  `technique_*`、`techniques`、`my_techniques`   `technique`  
+  `crafting_*`   `crafting`  
+  `map_*`   `map`  
+  `chat`、`chat_private`、`chat_history`   `chat`  
+  `rank`   `rank`  
+  `heal`、`player_info`   `player`  
+  `cultivate_start`、`cultivate_stop`、`breakthrough`、`season_info`   `cultivation`  
+  `inventory`、`item_use`、`item_registry`、`equipment_enhance`   `inventory`  
+  其他（如 `heartbeat`、`auth`）   不门控  
 
 ::: warning 宗门战是独立的开关
 `sect_war` 走的是 `experimental_sect_war`，**不是** `sect`。
@@ -264,12 +264,12 @@ close code `4009`（"消息过大"）断开连接。
 
 以下消息由服务端**主动**下发（`broadcast`），客户端 `msgId` 为 `0`：
 
-| `type` | 触发时机 | 说明 |
-| --- | --- | --- |
-| 聊天消息 | 有人发世界聊天 | 广播给所有在线玩家 |
-| 玩家上线 | 玩家认证成功 | `broadcastUserOnline` |
-| 玩家下线 | 连接关闭 | `broadcastUserOffline` |
-| `season_change` | 季节更替 | 含 `season`、`seasonDisplay`、`seasonDesc`、`message` |
+  `type`   触发时机   说明  
+  ---   ---   ---  
+  聊天消息   有人发世界聊天   广播给所有在线玩家  
+  玩家上线   玩家认证成功   `broadcastUserOnline`  
+  玩家下线   连接关闭   `broadcastUserOffline`  
+  `season_change`   季节更替   含 `season`、`seasonDisplay`、`seasonDesc`、`message`  
 
 季节更替广播的载荷：
 
@@ -337,12 +337,12 @@ if (info.code !== 0) {
 
 ## 重连建议
 
-| 场景 | 建议 |
-| --- | --- |
-| close `4001` | Token 失效，需重新登录后再连 |
-| close `4002` | 账号在别处登录，**不要**自动重连（会互相踢） |
-| close `4009` | 检查发送的消息体大小 |
-| 网络异常断开 | 指数退避重连，重连后**必须重新 `auth`** |
+  场景   建议  
+  ---   ---  
+  close `4001`   Token 失效，需重新登录后再连  
+  close `4002`   账号在别处登录，**不要**自动重连（会互相踢）  
+  close `4009`   检查发送的消息体大小  
+  网络异常断开   指数退避重连，重连后**必须重新 `auth`**  
 
 ::: warning 重连后离线收益会再次结算
 认证成功时会触发一次离线收益结算。频繁重连不会重复发放

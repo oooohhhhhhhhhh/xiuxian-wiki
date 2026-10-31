@@ -3,7 +3,7 @@
 阵法是**洞府专属的限时增益**：布置后在有效期内为角色提供灵气汇聚、修炼加成、战斗减伤、心魔抵抗四类效果。
 一个角色同时**只能布置一个阵法**，到期或主动拆除后效果立即消失。
 
-- 玩法模块：`formation`（`config/plugins.yml` 的 `built_in_plugins.formation`，默认启用）。模块停用后指令在 `/帮助` 中隐藏，分发被拦截。
+- 玩法模块：`formation`（`config/plugins/formation.yml` 的 `enabled`，默认启用）。模块停用后指令在 `/帮助` 中隐藏，分发被拦截。
 - 数据表：`formations`
 - 服务：`com.mtxgdn.game.service.FormationService`
 - 指令：`com.mtxgdn.onebot.command.formation.FormationCommand`（同时注册了 5 条 HTTP 路由）

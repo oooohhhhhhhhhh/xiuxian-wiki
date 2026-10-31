@@ -62,7 +62,7 @@ GrizzlyHttpServerFactory.createHttpServer(
 ### 模块门控
 
 `ModuleGateFilter` 会拦截被**停用插件**所属的接口。
-若某个模块在 `config/plugins.yml` 里为 `false`，其接口即使权限足够也会被拒绝。
+某某个模块在 `config/plugins/<模块名>.yml` 里 `enabled: false`，其接口即使权限足够也会被拒绝。
 
 ## 统一响应格式
 

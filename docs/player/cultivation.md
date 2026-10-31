@@ -293,5 +293,5 @@ netExp != 0 → addExperience(playerId, netExp)
 :::
 
 ::: details 修炼模块停用后会怎样？
-`SeasonService` 的 10 秒 tick 会检查内置模块 `cultivation` 是否启用，停用时暂停季节重算（`plugins.yml` 中 `cultivation: true`）。
+`SeasonService` 的 10 秒 tick 会检查内置模块 `cultivation` 是否启用，停用时暂停季节重算（`config/plugins/cultivation.yml` 中 `enabled: true`）。
 :::

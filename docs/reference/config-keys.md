@@ -1,12 +1,22 @@
 # 配置项全表
 
-本页是 `config/application.yml` 与 `config/plugins.yml` 的**逐项对照表**，
-用于查阅配置键的名称、类型、默认值与作用。配置的使用方式与合并规则见
-[配置详解](/guide/config)。
+本页是配置键的**逐项对照表**，用于查阅名称、类型、默认值与作用。
+配置的使用方式与合并规则见[配置详解](/guide/config)。
+
+::: tip 配置分成两类
+- **通用设置**在 `config/application.yml`（端口、数据库、密钥、日志…）
+- **每个插件一份**在 `config/plugins/<插件名>.yml`（开关 + 该插件的参数）
+
+玩法类配置（`market` / `world_boss` / `sect` / `buff` / `inventory` /
+`breakthrough` / `equipment` / `season` / `onebot` / `minecraft` / `wilderness`）
+现在归属各自的插件文件，见[插件配置](/guide/plugins)。
+
+本页仍按**键名前缀**列出全部配置项 —— 键名没有变，只是所在文件变了。
+:::
 
 ::: tip 默认值的含义
-表中「默认值」一列取自 jar 内置的 `application.yml` 模板。
-由于外部 `config/application.yml` 会**覆盖**内置模板（而不是替换），
+表中「默认值」一列取自 jar 内置模板。
+由于外部配置会**覆盖**内置模板（而不是替换），
 升级后新增的配置键会自动继承模板里的默认值，**不需要你手工补齐**。
 :::
 
@@ -92,6 +102,10 @@ openssl rand -base64 48
 
 ### 5. 全局季节系统 `season`
 
+::: tip 现归属 `config/plugins/cultivation.yml`
+本段参数已搬进插件配置文件，键名不变。写在 `application.yml` 里仍会生效，但只在插件文件没写该项时作为兜底。
+:::
+
 | 配置键 | 类型 | 默认值 | 说明 |
 | --- | --- | --- | --- |
 | `season.mode` | string | `calendar` | 更替模式：`calendar`=按真实月份四季；`cycle`=按小时循环 |
@@ -168,6 +182,10 @@ openssl rand -base64 48
 
 ### 11. OneBot QQ 机器人 `onebot`
 
+::: tip 现归属 `config/plugins/onebot.yml`
+本段参数已搬进插件配置文件，键名不变。写在 `application.yml` 里仍会生效，但只在插件文件没写该项时作为兜底。
+:::
+
 | 配置键 | 类型 | 默认值 | 说明 |
 | --- | --- | --- | --- |
 | `onebot.enabled` | bool | `true` | 是否启用 OneBot 接入。**注意：当前版本运行时已不再读取此键**（见下方说明） |
@@ -193,6 +211,10 @@ OneBot / Minecraft 适配器的**实际运行参数**（地址、端口、令牌
 :::
 
 ### 12. Minecraft 内置服务器 `minecraft`
+
+::: tip 现归属 `config/plugins/minecraft.yml`
+本段参数已搬进插件配置文件，键名不变。写在 `application.yml` 里仍会生效，但只在插件文件没写该项时作为兜底。
+:::
 
 | 配置键 | 类型 | 默认值 | 说明 |
 | --- | --- | --- | --- |
@@ -220,12 +242,20 @@ OneBot / Minecraft 适配器的**实际运行参数**（地址、端口、令牌
 
 ### 14. 背包系统 `inventory`
 
+::: tip 现归属 `config/plugins/inventory.yml`
+本段参数已搬进插件配置文件，键名不变。写在 `application.yml` 里仍会生效，但只在插件文件没写该项时作为兜底。
+:::
+
 | 配置键 | 类型 | 默认值 | 说明 |
 | --- | --- | --- | --- |
 | `inventory.base_capacity` | int | `30` | 初始背包格子数 |
 | `inventory.capacity_per_level` | int | `5` | 每升一级增加的背包格子数 |
 
 ### 15. 坊市 `market`
+
+::: tip 现归属 `config/plugins/trade.yml`
+本段参数已搬进插件配置文件，键名不变。写在 `application.yml` 里仍会生效，但只在插件文件没写该项时作为兜底。
+:::
 
 | 配置键 | 类型 | 默认值 | 说明 |
 | --- | --- | --- | --- |
@@ -239,6 +269,10 @@ OneBot / Minecraft 适配器的**实际运行参数**（地址、端口、令牌
 :::
 
 ### 15c. Buff 过期回收 `buff`
+
+::: tip 现归属 `config/plugins/buff.yml`
+本段参数已搬进插件配置文件，键名不变。写在 `application.yml` 里仍会生效，但只在插件文件没写该项时作为兜底。
+:::
 
 | 配置键 | 类型 | 默认值 | 说明 |
 | --- | --- | --- | --- |
@@ -256,6 +290,10 @@ OneBot / Minecraft 适配器的**实际运行参数**（地址、端口、令牌
 :::
 
 ### 15d. 宗门宗主继位 `sect`
+
+::: tip 现归属 `config/plugins/sect.yml`
+本段参数已搬进插件配置文件，键名不变。写在 `application.yml` 里仍会生效，但只在插件文件没写该项时作为兜底。
+:::
 
 | 配置键 | 类型 | 默认值 | 说明 |
 | --- | --- | --- | --- |
@@ -276,6 +314,10 @@ OneBot / Minecraft 适配器的**实际运行参数**（地址、端口、令牌
 
 ### 15e. 世界 Boss `world_boss`
 
+::: tip 现归属 `config/plugins/world_boss.yml`
+本段参数已搬进插件配置文件，键名不变。写在 `application.yml` 里仍会生效，但只在插件文件没写该项时作为兜底。
+:::
+
 | 配置键 | 类型 | 默认值 | 说明 |
 | --- | --- | --- | --- |
 | `world_boss.scope` | string | `global` | Boss 池的归属键。单世界服务器固定 `global`；将来若要「按群 / 按分线」各有一批，改这里即可，不必改表结构 |
@@ -295,6 +337,10 @@ OneBot / Minecraft 适配器的**实际运行参数**（地址、端口、令牌
 详见 [世界 Boss](/player/world-boss)。
 
 ### 15f. 突破：连败增益与凝实 `breakthrough`
+
+::: tip 现归属 `config/plugins/cultivation.yml`
+本段参数已搬进插件配置文件，键名不变。写在 `application.yml` 里仍会生效，但只在插件文件没写该项时作为兜底。
+:::
 
 | 配置键 | 类型 | 默认值 | 说明 |
 | --- | --- | --- | --- |
@@ -367,11 +413,13 @@ OneBot / Minecraft 适配器的**实际运行参数**（地址、端口、令牌
 
 ### 19. 内置玩法模块（已迁移）
 
-`built_in_plugins` 段**已废弃**。内置插件/玩法模块的启停开关已迁移到独立配置文件
-`config/plugins.yml`，也可在 WebUI「插件管理」页运行时启停并写回该文件。
+`built_in_plugins` 段**已废弃**。内置插件/玩法模块的启停开关已迁移到
+每个插件自己的配置文件 `config/plugins/<插件名>.yml`，
+也可在 WebUI「插件管理」页运行时启停并写回该文件。
 
 旧版本写在 `application.yml` 里的 `built_in_plugins` 段仅作为**只读兜底**：
-升级后首次启动会自动迁移，未迁移到的键仍会读取，但一旦 `plugins.yml` 里存在同名键即以 `plugins.yml` 为准。
+升级后首次启动会自动迁移，未迁移到的键仍会读取，
+但一旦插件文件里存在同名键即以插件文件为准。
 
 ### 20. 重启方式 `restart`
 
@@ -394,97 +442,103 @@ OneBot / Minecraft 适配器的**实际运行参数**（地址、端口、令牌
 
 ---
 
-## plugins.yml
+## plugins/*.yml
 
-`config/plugins.yml` 的根节点是 `plugins:`，共 **31 个开关**：
-25 个稳定玩法模块、2 个实验性插件、4 个消息通道适配器。
+每个插件一份配置文件，放在 `config/plugins/` 下，文件名即插件名：
 
-取值规则：`true` = 启用（默认），`false` = 停用（重启后生效），注释掉的行 = 使用默认值 `true`。
+```
+config/plugins/<插件名>.yml
+```
 
-**取值优先级：** `config/plugins.yml` > jar 内模板 > 旧配置只读兜底
-（`application.yml` 的 `built_in_plugins.*` 与 `config/experimental.yml` 的 `experimental.*`）。
+文件里有两个部分：
 
-### 基础玩法模块
-
-| 开关 | 默认值 | 说明 |
+| 键 | 位置 | 说明 |
 | --- | --- | --- |
-| `exploration` | `true` | 探索/游历系统（游历事件、随机遭遇） |
-| `secret_realm` | `true` | 秘境系统（进入秘境、秘境探索） |
-| `trade` | `true` | 坊市交易系统（上架、购买、取消） |
-| `sect` | `true` | 宗门系统（创建宗门、宗门管理、宗门仓库） |
-| `farm` | `true` | 农场系统（种植、浇水、施肥、收获） |
-| `cave` | `true` | 洞府系统（灵力收集、洞府升级） |
+| `enabled` | 顶层 | `true` = 启用（默认），`false` = 停用（重启后完全生效） |
+| 其余键 | 顶层，与该插件参数前缀同名 | 该插件的可调参数，缺省时回落到 `application.yml` |
 
-### 社交玩法模块
+示例（`config/plugins/world_boss.yml`）：
 
-| 开关 | 默认值 | 说明 |
-| --- | --- | --- |
-| `chat` | `true` | 聊天系统（世界频道、私聊） |
-| `friend` | `true` | 好友系统（添加好友、好友列表） |
-| `rank` | `true` | 排行系统（查看排行榜） |
-| `search` | `true` | 搜索系统（按名称搜索玩家） |
+```yaml
+enabled: true
+scope: global
+boss_count: 3
+hp_multiplier: 12
+max_stage_gap: 9
+```
 
-### 移动 / 养成玩法模块
+**取值优先级：**
 
-| 开关 | 默认值 | 说明 |
-| --- | --- | --- |
-| `map` | `true` | 地图系统（查看地图、移动旅行） |
-| `team` | `true` | 团队系统（创建团队、组队副本） |
-| `title` | `true` | 称号系统（成就、称号装备） |
-| `player` | `true` | 角色系统（状态、疗伤、灵根） |
+```
+-D 系统属性 > 运行期覆盖 > config/plugins/<插件名>.yml
+           > config/application.yml > jar 内模板
+```
 
-### 修炼 / 战斗玩法模块
-
-| 开关 | 默认值 | 说明 |
-| --- | --- | --- |
-| `cultivation` | `true` | 修炼系统（打坐、突破、转世、天象、晨修） |
-| `skill` | `true` | 技能系统（学习技能、技能列表、战斗策略） |
-| `pvp` | `true` | 战斗系统（挑战、决斗） |
-| `world_boss` | `true` | 世界 Boss（全服共享血量、按伤害分红、贡献榜） |
-| `inventory` | `true` | 背包/装备系统（物品、装备、强化） |
-
-### 经济 / 制造玩法模块
-
-| 开关 | 默认值 | 说明 |
-| --- | --- | --- |
-| `economy` | `true` | 经济系统（拍卖、灵庄、商店、签到、灵石流转） |
-| `energy` | `true` | 能量系统（物品转化能量） |
-| `technique` | `true` | 功法系统（功法学习、装备、升级） |
-| `crafting` | `true` | 炼丹锻造系统（配方、炼制） |
-| `buff` | `true` | Buff 系统（增益效果） |
-| `formation` | `true` | 阵法系统（阵法布置、阵法加成） |
-
-### 实验性插件
-
-停用即整体关闭该实验性内容：相关指令/接口会被门控拒绝。
-这两个开关由旧 `experimental.yml` 的 `sect_war` / `energy_exchange` 迁移而来。
-
-| 开关 | 默认值 | 说明 |
-| --- | --- | --- |
-| `experimental_sect_war` | `false` | 宗门战（实验性，默认关闭） |
-| `experimental_energy_exchange` | `true` | 能量转化/等价交换（实验性，默认开启） |
-
-### 消息通道适配器
-
-类型级总开关；**实例级** `enabled` 仍在 `config/adapters.json`。
-
-| 开关 | 默认值 | 说明 |
-| --- | --- | --- |
-| `onebot` | `true` | OneBot WebSocket/截图 消息通道 |
-| `qq` | `true` | QQ 官方机器人消息通道 |
-| `minecraft` | `true` | Minecraft 内嵌服务器消息通道 |
-| `minecraft-player` | `true` | Minecraft 玩家直连消息通道 |
-
-::: warning 外部插件不在此文件
-`plugins/*.jar` 形式的第三方插件，其开关由插件自身的启停状态管理，
-不受 `plugins.yml` 控制。
+::: tip 旧文件仍然有效
+`config/plugins.yml`（旧版单文件开关）与 `config/experimental.yml`
+仍被读取，但**优先级低于插件文件**。新安装不再生成 `plugins.yml`。
 :::
 
----
+### 全部插件
+
+共 **31 个**：25 个稳定玩法模块、2 个实验性插件、4 个消息通道适配器。
+
+| 插件 | 配置文件 | 默认 | 说明 |
+| --- | --- | --- | --- |
+| `exploration` | `exploration.yml` | `true` | 探索/游历系统 |
+| `secret_realm` | `secret_realm.yml` | `true` | 秘境系统 |
+| `trade` | `trade.yml` | `true` | 坊市交易系统 |
+| `sect` | `sect.yml` | `true` | 宗门系统 |
+| `farm` | `farm.yml` | `true` | 农场系统 |
+| `cave` | `cave.yml` | `true` | 洞府系统 |
+| `chat` | `chat.yml` | `true` | 聊天系统 |
+| `friend` | `friend.yml` | `true` | 好友系统 |
+| `rank` | `rank.yml` | `true` | 排行系统 |
+| `search` | `search.yml` | `true` | 搜索系统 |
+| `map` | `map.yml` | `true` | 地图系统 |
+| `team` | `team.yml` | `true` | 团队系统 |
+| `title` | `title.yml` | `true` | 称号系统 |
+| `player` | `player.yml` | `true` | 角色系统 |
+| `cultivation` | `cultivation.yml` | `true` | 修炼系统 |
+| `skill` | `skill.yml` | `true` | 技能系统 |
+| `pvp` | `pvp.yml` | `true` | 战斗系统 |
+| `world_boss` | `world_boss.yml` | `true` | 世界 Boss |
+| `inventory` | `inventory.yml` | `true` | 背包/装备系统 |
+| `economy` | `economy.yml` | `true` | 经济系统 |
+| `energy` | `energy.yml` | `true` | 能量系统 |
+| `technique` | `technique.yml` | `true` | 功法系统 |
+| `crafting` | `crafting.yml` | `true` | 炼丹锻造系统 |
+| `buff` | `buff.yml` | `true` | Buff 系统 |
+| `formation` | `formation.yml` | `true` | 阵法系统 |
+| `experimental_sect_war` | `experimental_sect_war.yml` | `false` | 宗门战（实验性，**默认关闭**） |
+| `experimental_energy_exchange` | `experimental_energy_exchange.yml` | `true` | 能量转化（实验性） |
+| `onebot` | `onebot.yml` | `true` | OneBot 消息通道 |
+| `qq` | `qq.yml` | `true` | QQ 官方机器人通道 |
+| `minecraft` | `minecraft.yml` | `true` | Minecraft 内置服务器通道 |
+| `minecraft-player` | `minecraft-player.yml` | `true` | Minecraft 玩家直连通道 |
+
+::: tip 带参数的插件
+只有 9 个插件有可调参数，其余是纯开关：
+
+| 配置文件 | 参数前缀 |
+| --- | --- |
+| `cultivation.yml` | `breakthrough.*`、`season.*` |
+| `world_boss.yml` | `world_boss.*` |
+| `trade.yml` | `market.*` |
+| `sect.yml` | `sect.*` |
+| `inventory.yml` | `inventory.*`、`equipment.*` |
+| `buff.yml` | `buff.*` |
+| `map.yml` | `wilderness.*` |
+| `onebot.yml` | `onebot.*` |
+| `minecraft.yml` | `minecraft.*` |
+
+具体键见上文对应的段落。详见[插件配置](/guide/plugins)。
+:::
+
 
 ## config/game/wilderness_map.json
 
-野外无限分片世界的配置，独立于 `application.yml` / `plugins.yml`。
+野外无限分片世界的配置，独立于 `application.yml` 与插件配置文件。
 文件由 `GameConfigLoader` 从 jar 内 `game/wilderness_map.json` 模板**首次释放**到
 `<jar目录>/config/game/wilderness_map.json`；删除它只会失去自定义、回到 jar 内默认值，不会让服务起不来。
 

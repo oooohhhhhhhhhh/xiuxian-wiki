@@ -19,7 +19,8 @@
 ::: tip 三条贯穿全局的设计约定
 1. **指令即路由**：一个 `Command` 子类在构造函数里 `addRoute` / `registerSub`，
    就同时成为 QQ 指令与 REST 路由，不存在"某个端少一块功能"。
-2. **内置插件化**：全部玩法以"内置插件"形式运行，开关集中在 `config/plugins.yml`，
+2. **内置插件化**：全部玩法以"内置插件"形式运行，每个插件一份配置文件
+   `config/plugins/<插件名>.yml`（开关 + 可调参数），
    停用后其指令、接口、WebSocket 动作与后台定时任务一并失效。
 3. **配置覆盖式合并**：jar 内置模板作为基底，外部 `config/application.yml` 逐键覆盖，
    所以升级后新增的配置键会自动继承默认值，不需要手工抄写。
@@ -39,8 +40,8 @@
 
 ## 特性一览（按玩法分类）
 
-下面的分类对应 `config/plugins.yml` 里的**模块名**（即开关键）。
-每个模块的开关语义与停用影响见[插件开关](/guide/plugins)，此处只讲它做什么。
+下面的分类对应 `config/plugins/` 下的**插件名**（即配置文件名的前缀）。
+每个插件文件的格式与停用影响见[插件配置](/guide/plugins)，此处只讲它做什么。
 
 ### 修炼与成长
 
@@ -207,13 +208,13 @@ xiuxian-server/
 │
 ├── src/main/resources/
 │   ├── application.yml              # 打包默认配置（运行时释放到 config/）
-│   ├── plugins.yml                  # 内置插件开关（释放到 config/plugins.yml）
+│   ├── plugin-configs/              # 每个插件一份配置模板（释放到 config/plugins/）
 │   ├── game/realm_config.json       # 境界数据（11 大境界 / 29 阶段）
 │   ├── webadmin/                    # Web 管理控制台前端
 │   └── install/                     # 安装向导页面
 │
 └── 运行期生成（相对进程工作目录）
-    ├── config/                      # application.yml / plugins.yml / adapters.json / blacklist.yml …
+    ├── config/                      # application.yml / plugins/ / adapters.json / blacklist.yml …
     ├── data/players/                # 玩家数据 JSON
     ├── log/                         # 每次启动一个新日志文件
     ├── plugins/                     # 第三方插件 jar
@@ -253,6 +254,6 @@ xiuxian-server/
 
 ::: tip 文档与代码的一致性
 本套文档以仓库源码为唯一依据撰写：数值取自 `src/main/resources/application.yml`、
-`plugins.yml`、`realm_config.json` 与对应 Java 类，行为描述取自实际实现。
+`plugin-configs/*.yml`、`realm_config.json` 与对应 Java 类，行为描述取自实际实现。
 若文档与代码不一致，**以代码为准**。
 :::

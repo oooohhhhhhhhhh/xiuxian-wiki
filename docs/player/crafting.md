@@ -340,10 +340,10 @@ result.put("message", "材料不足：需要 " + itemName + " x" + needed + "，
 
 ## 模块开关
 
-合成系统受内置模块 `crafting` 门控，配置位于 `src/main/resources/plugins.yml`：
+合成系统受内置模块 `crafting` 门控，开关位于 `config/plugins/crafting.yml`：
 
 ```yaml
-  crafting: true               # 炼丹锻造系统（配方、炼制）
+enabled: true                  # 炼丹锻造系统（配方、炼制）
 ```
 
 停用后 `/合成` 相关指令不再可用（`CraftCommand.setModule("crafting")`）。

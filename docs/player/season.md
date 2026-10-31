@@ -51,7 +51,7 @@ private static void tick() {
 ```
 
 ::: warning 模块门控
-内置模块 `cultivation` 被停用（`plugins.yml` 中 `cultivation: false`）时，季节 tick 直接返回，季节不再重算。恢复模块后需等下一次 tick 或重启。
+内置模块 `cultivation` 被停用（`config/plugins/cultivation.yml` 中 `enabled: false`）时，季节 tick 直接返回，季节不再重算。恢复模块后需等下一次 tick 或重启。
 :::
 
 ### 对外接口

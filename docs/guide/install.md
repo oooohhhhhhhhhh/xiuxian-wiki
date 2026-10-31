@@ -193,12 +193,12 @@ rm config/.installed
 <jar 所在目录>/
 ├── main-0.1.0.jar
 ├── config/
-│   ├── application.yml          ← 自动从 jar 释放
-│   ├── plugins.yml              ← 插件开关
-│   ├── adapters.json            ← 消息通道实例配置
-│   ├── blacklist.yml
-│   ├── onebot_group_config.yml
-│   └── .installed               ← 安装完成锁文件
+    ├── application.yml          ← 自动从 jar 释放
+    ├── plugins/                 ← 插件开关与参数（每插件一份，共 31 个）
+    ├── adapters.json            ← 消息通道实例配置
+    ├── blacklist.yml
+    ├── onebot_group_config.yml
+    └── .installed               ← 安装完成锁文件
 ├── data/players/                ← 玩家数据 JSON
 ├── log/                         ← 日志
 ├── plugins/                     ← 第三方插件 jar
