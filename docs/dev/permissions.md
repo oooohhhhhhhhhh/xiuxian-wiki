@@ -57,6 +57,7 @@
 | `game.sect.donate` | 宗门捐献 |
 | `game.sect.warehouse` | 宗门仓库 |
 | `game.cave.manage` | 洞府管理 |
+| `game.collection.view` | 查看图鉴 |
 | `game.team.manage` | 团队管理 |
 | `game.team.view` | 查看团队 |
 | `game.title.view` | 查看称号 |

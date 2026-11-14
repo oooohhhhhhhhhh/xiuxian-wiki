@@ -493,7 +493,7 @@ max_stage_gap: 9
 
 ### 全部插件
 
-共 **31 个**：25 个稳定玩法模块、2 个实验性插件、4 个消息通道适配器。
+共 **32 个**：26 个稳定玩法模块、2 个实验性插件、4 个消息通道适配器。
 
 | 插件 | 配置文件 | 默认 | 说明 |
 | --- | --- | --- | --- |
@@ -511,6 +511,7 @@ max_stage_gap: 9
 | `team` | `team.yml` | `true` | 团队系统 |
 | `title` | `title.yml` | `true` | 称号系统 |
 | `player` | `player.yml` | `true` | 角色系统 |
+| `collection` | `collection.yml` | `true` | 全图鉴（另有独立奖励配置文件 `config/collection.yml`） |
 | `cultivation` | `cultivation.yml` | `true` | 修炼系统 |
 | `skill` | `skill.yml` | `true` | 技能系统 |
 | `pvp` | `pvp.yml` | `true` | 战斗系统 |

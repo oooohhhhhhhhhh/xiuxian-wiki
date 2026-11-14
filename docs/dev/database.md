@@ -74,7 +74,7 @@ private void addTradeListingsExpiresAtColumn(Connection conn) {
 
 ## 数据表总览
 
-共 **45 张表**，按领域分组如下：`DatabaseManager.initTable()` 逐条执行 **43** 条 `CREATE TABLE IF NOT EXISTS`，另有 **2** 张（`player_buffs`、`farm_plots`）由 `DatabaseMigration` 创建。
+共 **53 张表**，按领域分组如下：`DatabaseManager.initTable()` 逐条执行 **48** 条 `CREATE TABLE IF NOT EXISTS`，**2** 张（`player_buffs`、`farm_plots`）由 `DatabaseMigration` 创建，其余 3 张（`user_permissions`、`schema_migrations`、`map_wilderness_resources`）由各自模块按需创建。
 
 ### 账号与鉴权
 
@@ -125,6 +125,7 @@ QQ 官方平台下发的是 **openid**，与真实 QQ 号不是同一身份体�
 | `techniques` / `players_techniques` | 功法定义 / 已学功法 | 各类 `*_bonus`、`cultivation_speed_bonus`、`exp_bonus` / `level`、`is_equipped` |
 | `recipes` | 炼制配方 | `result_item_key`、`material1..3_key/count`、`success_rate` |
 | `player_titles` | 已获称号 | `(player_id, title_key)` 唯一、`is_equipped` |
+| `player_collection` | 图鉴解锁记录 | `(player_id, category, entry_key)` 唯一、`unlocked_at`、`reward_granted`；集齐伪条目 `entry_key = '__completion__'`（迁移 028） |
 | `player_buffs` | 生效中的 Buff | `buff_id`、各类 `*_bonus`、`expire_time` |
 | `player_energy` | 能量 | `player_id`(主键)、`energy` |
 

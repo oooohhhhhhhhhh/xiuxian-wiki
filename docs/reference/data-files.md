@@ -31,7 +31,7 @@ JAR 目录: /opt/xiuxian
 | 路径 | 用途 |
 | --- | --- |
 | `application.yml` | 配置**模板**，首次启动释放到 `config/application.yml` |
-| `plugin-configs/<插件名>.yml` | 插件配置**模板**（31 份），首次启动释放到 `config/plugins/<插件名>.yml` |
+| `plugin-configs/<插件名>.yml` | 插件配置**模板**（32 份），首次启动释放到 `config/plugins/<插件名>.yml` |
 | `plugins.yml` | ⚠️ **旧版插件开关模板**，现仅作兜底 |
 | `built_in_plugins.yml` | ⚠️ **旧版模板**，全部注释掉，**不是权威来源** |
 | `plugin.yml` | Minecraft 桥接插件的 Bukkit 描述文件（不是本服务端的配置） |
@@ -46,7 +46,7 @@ JAR 目录: /opt/xiuxian
 ::: warning 两个旧模板都已废弃
 `built_in_plugins.yml` 与 `plugins.yml` 都是旧版本的插件开关文件。
 现在**权威的开关位置**是各插件自己的配置文件
-`config/plugins/<插件名>.yml`（31 个文件，每个含 `enabled`）。
+`config/plugins/<插件名>.yml`（32 个文件，每个含 `enabled`）。
 
 在旧模板或旧位置里改开关**不会生效**（它们只作为只读兜底）。
 取值优先级：
@@ -66,12 +66,13 @@ JAR 目录: /opt/xiuxian
 | 文件 | 路径基准 | 是否自动生成 | 说明 |
 | --- | --- | --- | --- |
 | `config/application.yml` | **JAR 目录** | ✅ 从 jar 模板释放 | 通用设置 |
-| `config/plugins/<插件名>.yml` | **JAR 目录** | ✅ 从 jar 模板释放 | **每个插件一份**：开关 + 参数（共 31 个） |
+| `config/plugins/<插件名>.yml` | **JAR 目录** | ✅ 从 jar 模板释放 | **每个插件一份**：开关 + 参数（共 32 个） |
 | `config/plugins.yml` | **JAR 目录** | ⚠️ 新版不再生成 | **旧版**插件开关，仅作兜底 |
 | `config/adapters.json` | **工作目录** | ✅ 写默认配置 | 消息通道实例 |
 | `config/.installed` | 工作目录 | 安装完成时创建 | 安装锁 |
 | `config/game/wilderness_map.json` | JAR 目录 | ✅ 从 jar 模板释放 | 野外地图配置（`GameConfigLoader` 释放；见[野外（无限分片世界）](/player/wilderness)） |
 | `config/newbie_reward.json` | JAR 目录 | ✅ 从内置默认释放 | 新手奖励配置（默认 `enabled=false`，见[角色创建](/player/account)） |
+| `config/collection.yml` | **JAR 目录** | ✅ 从 jar 模板释放 | 全图鉴奖励配置（分类开关、每条/集齐奖励，见[全图鉴](/player/collection)） |
 | `config/experimental.yml` | 同 `config/plugins/` 的父目录 | ❌ | **旧版**实验性开关，可删 |
 
 ::: tip 旧配置会自动迁移

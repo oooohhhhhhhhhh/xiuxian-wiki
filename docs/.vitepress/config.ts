@@ -45,6 +45,7 @@ export default defineConfig({
           items: [
             { text: '玩法总览与全指令表', link: '/player/' },
             { text: '账号与角色', link: '/player/account' },
+            { text: '全图鉴', link: '/player/collection' },
           ],
         },
         {

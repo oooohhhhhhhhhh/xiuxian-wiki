@@ -1,6 +1,6 @@
 # 玩法总览与全指令表
 
-本页是**玩家侧的总入口**：先讲清楚怎么玩、有哪些系统，再给出**全部 87 条指令**的完整清单。
+本页是**玩家侧的总入口**：先讲清楚怎么玩、有哪些系统，再给出**全部 88 条指令**的完整清单。
 
 ::: tip 想找某个功能怎么用？
 按 `Ctrl+F` 搜指令名（如 `/打坐`）或搜关键词（如"坊市"）。
@@ -102,6 +102,7 @@ QQ 里发 `/打坐`，Minecraft 里发 `/xiuxian 打坐`（前缀由 `minecraft.
 | --- | --- | --- |
 | 物品 | [物品系统](/player/items) | 114 个物品，8 类型 6 品质 |
 | 装备 | [装备与强化](/player/equipment) | 3 个栏位，强化最高 +15 |
+| 图鉴 | [全图鉴](/player/collection) | 收集物品/称号/功法等，逐条解锁发奖励，奖励可配置 |
 | 炼制 | [炼丹与锻造](/player/crafting) | 33 条配方 |
 | 农田 | [灵田农场](/player/farm) | 种植灵药，受季节影响 |
 | 能量 | [能量转化](/player/energy) | 物品转化能量，80% 损耗 |
@@ -119,7 +120,7 @@ QQ 里发 `/打坐`，Minecraft 里发 `/xiuxian 打坐`（前缀由 `minecraft.
 
 ## 全部指令
 
-共 **87 条指令**（不含别名，`Command` 子类实测 87 个）。表格里：
+共 **88 条指令**（不含别名，`Command` 子类实测 88 个）。表格里：
 
 - **指令** 列是主名，括号内是别名
 - **模块** 列是该指令所属的内置玩法模块，对应 `config/plugins/<模块名>.yml` 的 `enabled`
@@ -149,6 +150,7 @@ QQ 里发 `/打坐`，Minecraft 里发 `/xiuxian 打坐`（前缀由 `minecraft.
 | **/疗伤** （/heal） | 恢复伤势 | `game.player.info` | `player` |
 | **/灵根** （/spiritualroot /talent） | 查看角色的灵根天赋 | — | `player` |
 | **/状态** （/信息 /status /info） | 查看角色状态（含离线收益） | `game.player.info` | `player` |
+| **/图鉴** （/collection /atlas） | 全图鉴：查看各分类收集进度；子命令 `查看 <分类> [页码]`、`奖励` | `game.collection.view` | `collection` |
 
 ### 修炼
 
