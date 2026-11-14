@@ -10,30 +10,36 @@
 | `src/main/java/com/mtxgdn/game/service/EnhanceService.java` | 强化消耗、成功率、碎裂/降级、保底、加成公式 |
 | `src/main/java/com/mtxgdn/game/service/EquipmentFixService.java` | 启动期/管理端装备数据一致性修复 |
 | `src/main/java/com/mtxgdn/game/service/PlayerService.java` | `getFinalAttack` 等最终属性 = 称号加成 + 强化加成 |
-| `src/main/java/com/mtxgdn/onebot/command/item/EquipCommand.java` | `/装备` |
-| `src/main/java/com/mtxgdn/onebot/command/item/UnequipCommand.java` | `/卸下` |
-| `src/main/java/com/mtxgdn/onebot/command/item/EquippedCommand.java` | `/已装备` |
-| `src/main/java/com/mtxgdn/onebot/command/item/EnhanceCommand.java` | `/强化` |
-| `src/main/java/com/mtxgdn/onebot/command/admin/FixEquipmentCommand.java` | `/修复装备`（管理） |
+| `src/main/java/com/mtxgdn/game/command/item/EquipCommand.java` | `/装备` |
+| `src/main/java/com/mtxgdn/game/command/item/UnequipCommand.java` | `/卸下` |
+| `src/main/java/com/mtxgdn/game/command/item/EquippedCommand.java` | `/已装备` |
+| `src/main/java/com/mtxgdn/game/command/item/EnhanceCommand.java` | `/强化` |
+| `src/main/java/com/mtxgdn/game/command/admin/FixEquipmentCommand.java` | `/修复装备`（管理） |
 
 ## 装备栏位
 
 栏位是 `players_equipment.slot` 字符串（`VARCHAR(32)`），游戏约定 3 个：
 
-| 栏位 | 中文 | 说明 |
-| --- | --- | --- |
-| `weapon` | 武器 | 灵剑、龙剑等 |
-| `armor` | 防具 | 玉甲、凤凰铠甲、星辰法袍 |
-| `accessory` | 饰品 | 护身玉、空间戒指、麒麟护符 |
+| 栏位（规范名） | 中文 | 可输入别名 | 说明 |
+| --- | --- | --- | --- |
+| `weapon` | 武器 | `武器`、`主手`、`兵器`、`weapon` | 灵剑、龙剑等 |
+| `armor` | 防具 | `防具`、`护甲`、`衣服`、`armor` | 玉甲、凤凰铠甲、星辰法袍 |
+| `accessory` | 饰品 | `饰品`、`首饰`、`配件`、`accessory` | 护身玉、空间戒指、麒麟护符 |
 
-::: warning 服务层不校验栏位白名单，也不校验物品类型
-`ItemService.equipItem(playerId, itemKey, slot)` 直接 `ItemRegistry.resolve(itemKey)` 然后把 `slot` 原样写库，**不检查 slot 是否属于 `weapon/armor/accessory`，也不检查物品是不是装备**。栏位白名单只存在于三个指令的入参校验里：
+栏位统一由 `com.mtxgdn.game.item.EquipmentSlot` 归一化：指令、`/强化`、REST 传中文或
+大小写混写都可以，落库前一律转成 `weapon/armor/accessory`。
 
-```java
-String[] validSlots = {"weapon", "armor", "accessory"};
-```
+::: tip 栏位会先归一化，非法栏位直接拒绝
+`ItemService.equipItem(playerId, itemKey, slot)` 入口先把 `slot` 交给 `EquipmentSlot.normalize`：
+中文/英文别名都能识别，认不出的栏位（例如 `头盔`）返回「未知装备部位」并**不扣物品、不写库**。
+REST 接口 `POST /game/equipment/equip` 走同一个服务方法，因此也受同样的校验。
+:::
 
-REST 接口 `POST /game/equipment/equip` 只校验 `itemKey` / `slot` 非空，因此通过 HTTP 可以写入任意栏位名。
+::: warning 历史数据：曾经栏位不归一化
+旧版本会把玩家输入的「武器」原样写进 `players_equipment.slot`，导致
+`/已装备`、`/卸下 weapon`、`/强化 weapon` 都找不到这件装备（表现为"装备消失且卸不下来"）。
+现在迁移 `027_players_equipment_slot_normalize` 会在启动时把存量别名改成规范名，
+同槽重复行只保留一行、多余物品退回背包；读取路径也兼容历史行。
 :::
 
 数据表 `players_equipment`（`DatabaseSchema.createPlayersEquipmentTable`）：
@@ -42,7 +48,7 @@ REST 接口 `POST /game/equipment/equip` 只校验 `itemKey` / `slot` 非空，�
 | --- | --- | --- |
 | `id` | 主键 | 自增 |
 | `player_id` | `BIGINT NOT NULL` | 外键 → `players(id)` ON DELETE CASCADE |
-| `slot` | `VARCHAR(32) NOT NULL` | 栏位名 |
+| `slot` | `VARCHAR(32) NOT NULL` | 栏位名，只允许规范名 `weapon/armor/accessory`（历史别名由迁移 027 修正） |
 | `item_key` | `VARCHAR(128) NOT NULL` | 物品 `fullKey` |
 | `enhance_level` | `INT DEFAULT 0` | 强化等级，由 `DatabaseMigration.addEquipmentEnhanceLevelColumn` 增量补列 |
 | `created_at` / `updated_at` | 时间戳 | |
@@ -53,6 +59,7 @@ REST 接口 `POST /game/equipment/equip` 只校验 `itemKey` / `slot` 非空，�
 
 `ItemService.equipItem` 全流程包在一个事务里：
 
+0. 栏位归一化：认不出 → 返回「未知装备部位」，不扣物品、不写库；
 1. `ItemRegistry.resolve(itemKey)`，解析失败返回「物品不存在，请使用 /物品列表 查看可用物品」；
 2. 校验背包里有该 `fullKey`（数量 < 1 → 「背包中没有该物品」）；
 3. 若该栏位已装备**同一件**物品 → 「已装备该物品」；
@@ -61,6 +68,15 @@ REST 接口 `POST /game/equipment/equip` 只校验 `itemKey` / `slot` 非空，�
 6. 写 `players_equipment`（SQLite `ON CONFLICT(player_id, slot) DO UPDATE`；MySQL `ON DUPLICATE KEY UPDATE`）；
 7. **执行新装备效果**（写库成功之后），`BuffEffect` 走带 `Connection` 的重载；
 8. 拼接返回文案 `装备了【名称 (fullKey)】: 攻击力 +50，...`。
+
+::: warning 服务层目前不校验物品类型（已知问题）
+`equipItem` 只校验「栏位合法 + 背包里有这件物品」，**不检查物品是不是装备**：
+消耗品/秘籍/阵图也能被写进装备栏，且装备流程会执行它们的 `ItemEffect`。
+由于卸下只回退 `BuffEffect` 的四维加成，这类误操作可能白拿效果或把属性扣成负数；
+反过来把装备当消耗品 `/使用` 也不被拦截。
+目前只在三个指令入口做了「栏位白名单」，REST 走同一服务方法同样没有类型校验。
+**这是待修问题，wiki 只如实记录，不建议依赖。**
+:::
 
 ::: tip 写入顺序是「先回退旧装备 → 再落库新装备 → 最后执行效果」
 旧装备会**退回背包**，所以换装不会损失装备。注意事务内用的是 `addItem(conn, ...)` 内部重载，它**不做背包容量校验**（只有公开的 `addItem(playerId, ...)` 才调 `checkCapacity`），因此装备/卸下时即使背包已满也能写入，不会因容量拦截而回滚。
@@ -287,8 +303,8 @@ public void fixEquipmentData() {
 
 | 指令 | 别名 | 用法 | 权限 |
 | --- | --- | --- | --- |
-| `/装备 <物品> <部位>` | `equip` | `/装备 灵剑 weapon` | `game.equipment.equip` |
-| `/卸下 <部位>` | `unequip` | `/卸下 weapon` | `game.equipment.equip` |
+| `/装备 <物品> <部位>` | `equip` | `/装备 灵剑 weapon`（也可 `/装备 灵剑 武器`） | `game.equipment.equip` |
+| `/卸下 <部位>` | `unequip` | `/卸下 weapon`（也可 `/卸下 武器`） | `game.equipment.equip` |
 | `/已装备` | `equipped` | 展示武器/防具/饰品三行 | `game.inventory.view` |
 | `/强化 <栏位>` | `enhance` | `/强化 weapon` | `game.equipment.enhance` |
 | `/修复装备` | `fixequip` | 全服装备数据修复 | `admin.fix.equipment` |
@@ -306,7 +322,7 @@ public void fixEquipmentData() {
 强化成功！装备强化等级提升至 +4
 ```
 
-REST 接口（`GameResource`）：
+REST 接口（`GameInventoryResource`）：
 
 | 方法 | 路径 | 权限 | 说明 |
 | --- | --- | --- | --- |

@@ -360,6 +360,18 @@ OneBot / Minecraft 适配器的**实际运行参数**（地址、端口、令牌
 
 详见 [境界与突破](/player/realm#四、连败增益-pity)。
 
+### 15g. 洞府 `cave`
+
+::: tip 现归属 `config/plugins/cave.yml`
+本段参数已搬进插件配置文件，键名不变。写在 `application.yml` 里仍会生效，但只在插件文件没写该项时作为兜底。
+:::
+
+| 配置键 | 类型 | 默认值 | 说明 |
+| --- | --- | --- | --- |
+| `cave.meditate_cooldown_seconds` | int | `300` | 洞府冥想（`/洞府 meditate`）冷却秒数，**最小 60 秒**（读取时 `Math.max(60_000, ...)`）。冷却记在 `caves.last_meditate_time` |
+
+详见 [洞府系统](/player/cave#冷却)。
+
 ### 16. 性能 / 线程池 `performance`
 
 | 配置键 | 类型 | 默认值 | 说明 |

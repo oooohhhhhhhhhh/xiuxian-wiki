@@ -6,7 +6,7 @@
 - 玩法模块：`technique`（`built_in_plugins.technique`，默认启用）
 - 数据表：`techniques`（功法定义）、`players_techniques`（角色已学功法、等级、是否运转）
 - 服务：`com.mtxgdn.game.service.TechniqueService`
-- 指令：`com.mtxgdn.onebot.command.technique.TechniqueCommand`（同时注册 6 条 HTTP 路由）
+- 指令：`com.mtxgdn.game.command.technique.TechniqueCommand`（同时注册 6 条 HTTP 路由）
 
 ## 功法全表
 
@@ -166,7 +166,7 @@ player.setAttack(player.getAttack() + technique.getScaledAttackBonus());
 
 ```java
 // PlayerService.cultivationMultiplier —— 功法修炼速度
-double techniqueBonus = ServiceRegistry.getTechniqueService().getEquippedCultivationSpeedBonus(player.getId());
+double techniqueBonus = services.getTechniqueService().getEquippedCultivationSpeedBonus(player.getId());
 if (techniqueBonus > 0) {
     mult *= (1 + techniqueBonus);
 }
@@ -198,6 +198,8 @@ if (techniqueBonus > 0) {
 | `max_level` | 等级上限 |
 | `hp_bonus` / `mp_bonus` / `attack_bonus` / `defense_bonus` / `speed_bonus` / `spirit_bonus` | 六维基础加成 |
 | `cultivation_speed_bonus` / `exp_bonus` / `combat_damage_bonus` / `damage_reduction` | 四类倍率 |
+| `creator_user_id` / `player_made` | 自创功法归属（`player_made = 1`；存的是 `players.id`，不是 `users.id`）与标记；官方功法为 0 |
+| `effect_spec` | 自创功法词条规格（`key:单位;...`），官方功法为空串 |
 
 `players_techniques`：
 
@@ -207,6 +209,61 @@ if (techniqueBonus > 0) {
 | `level` | 当前等级，默认 1 |
 | `proficiency` | 熟练度（当前无写入来源） |
 | `is_equipped` | 是否运转中 |
+
+## 自创功法（L1 / L2）
+
+::: warning 服务端已实现，但**暂无玩家入口**
+创造、预算、落库、战斗词条这一整条链路都已实现并有回归测试，
+但还没有对应的 `/指令` / REST / WebSocket 入口 —— 玩家目前只能学习官方功法。
+本节描述"已经存在的能力"，入口属于后续排期（见 `docs/analysis/L3-玩家自建内容可行性研究.md`）。
+:::
+
+### L1：悟道预算 + 数值分配
+
+玩家按境界拿一笔预算（`TechniqueBudget.REALM_BUDGET`，练气 500 → 渡劫 7200 点），
+在 10 项属性上分配单位数：
+
+| 属性 | 每单位 | 单价（点/单位） | 硬上限 |
+| --- | --- | --- | --- |
+| 生命 / 法力 | +1 | 4 | 600 |
+| 攻击 / 防御 | +1 | 20 | 40 |
+| 速度 | +1 | 25 | 20 |
+| 神识 | +1 | 15 | 50 |
+| 修炼速度 | +1% | 120 | +30% |
+| 经验 | +1% | 120 | +20% |
+| 战斗伤害 / 减伤 | +1% | 200 | +15% |
+
+三重约束：总消耗 ≤ 境界预算；单项超过软上限（硬上限的 1/3）后**单价翻倍**；
+单项有绝对硬上限。客户端只提交"单位数"，折算数值与是否超预算**全部服务端重算**。
+
+### L2：词条（机制而非数值）
+
+在同一个预算池里还能买词条，最多 3 个（`TechniqueEffect` 白名单）：
+
+| 词条 | key | 每单位 | 上限 | 效果 |
+| --- | --- | --- | --- | --- |
+| 破防 | `armor_pen` | 60 | 30% | 攻击时无视对方部分防御 |
+| 锐意 | `crit_bonus` | 80 | 20% | 提高暴击率（总额外上限 85%） |
+| 战意 | `damage_amp` | 100 | 20% | 提高最终伤害（与护体互斥） |
+| 护体 | `guard` | 100 | 20% | 减少受到伤害（与战意互斥） |
+| 背水 | `last_stand` | 70 | 25% | 气血越低，伤害越高 |
+
+词条和数值抢**同一笔预算**；未知词条/超上限/重复/互斥组合一律拒绝。
+
+### 落库与生效
+
+* 写入 `techniques` 表（`player_made = 1`、`creator_user_id = players.id`、`effect_spec = "key:单位;..."`），
+  之后与官方功法**完全同通路**：能学习、装备、升级，六维加成走同一套聚合；
+* 词条只对**装备中**的功法生效：`TechniqueEffectResolver.forPlayer` 聚合已装备功法的词条，
+  30 秒缓存；聚合结果还有总量上限（破防 45%、暴击 30%、增伤 30%、减伤 30%、背水 40%）。
+  官方功法 `effect_spec` 为空，聚合结果全 0，因此不影响原有战斗结果。
+
+### 限制
+
+* 每人最多保留 3 门自创功法；名字全表唯一（含官方功法）+ 保留字过滤（防冒充官方）；
+* **删除安全**：有人正在运转 → 拒绝（必须先卸下，否则属性永久残留）；
+  除作者外有人学过 → 拒绝（不允许"作者一删，全服丢功法"）；
+  只有作者自己学过且未装备时允许删除并清理作者的学习记录。
 
 ## 相关页面
 

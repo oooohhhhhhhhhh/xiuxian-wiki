@@ -8,16 +8,19 @@
 
 | 入口 | 说明 | 怪物来源 |
 | --- | --- | --- |
-| `/战斗 战斗` | 野外怪物 | `PvpCommand.MONSTERS` 中 4 种固定怪随机一只 |
-| `/讨伐 讨伐` | Boss | 硬编码的「千年妖王」 |
-| `/boss boss <玩家1> <玩家2> ...` | 团队 Boss 战 | `PvpCommand.BOSS_FORMS` 三形态 |
+| `/战斗` | 野外怪物 | `BattleCommand.MONSTERS` 中 4 种固定怪随机一只 |
+| `/讨伐` | 个人 Boss | 硬编码的「千年妖王」 |
+| `/boss <玩家1> <玩家2> ...` | 团队 Boss 战 | `RaidBossCommand.BOSS_FORMS` 三形态 |
 | 游历事件 `monster` | 遭遇妖兽 | `Monster.random(玩家境界, random)` |
 | 秘境事件 `encounter_monster` | 遭遇妖兽 | `Monster.random(秘境境界, random)` |
 | 秘境事件 `encounter_boss` | 秘境守护者 | `Monster.createBossForRealm(秘境境界, random)` |
 | 秘境团队副本 | 小怪 + 最终 Boss | `Monster.random` + `BossForm.createFormsForRealm` |
 
-::: warning 指令必须重复子命令名
-`com.mtxgdn.onebot.command.pvp.PvpCommand` 的别名是 `{"决斗", "切磋", "fight", "战斗", "讨伐", "boss"}`，其 `execute` 先判断 `arg.isBlank()` → 直接打印用法，再把 `arg` 的第一个空格分隔词当作子命令。因此代码路径实际要求 `/决斗 <角色名>`、`/战斗 战斗`、`/讨伐 讨伐`、`/boss boss <名字...>`。而该指令内嵌的用法文案写的是 `/战斗`、`/讨伐`、`/boss`，与代码路径不一致：只写这些会得到用法提示而非战斗。
+::: tip PVE 战斗指令已拆成独立指令
+历史上 `/战斗`、`/讨伐`、`/boss` 曾是「决斗」指令的别名，必须写成
+`/战斗 战斗`、`/讨伐 讨伐`、`/boss boss <名字...>` 才能触发；现在它们各自是独立指令
+（`BattleCommand` / `SubjugateCommand` / `RaidBossCommand`），直接 `/战斗`、`/讨伐`、
+`/boss <玩家1> <玩家2> ...` 即可。PVP 仍只有 `/挑战`（旧名 `/决斗`、`/切磋` 为别名）。
 :::
 
 ## 前置条件与次数
@@ -194,7 +197,7 @@ Skill attackSkill = selectAttackSkill(skills, currentMp, mpReserve, attackerRoot
 
 ## 野外怪物模板
 
-`com.mtxgdn.onebot.command.pvp.PvpCommand.MONSTERS` 的 4 只固定怪，构造参数顺序为 `(名称, HP, 攻击, 防御, 速度, 境界, 是否Boss, 掉落表, 掉落率, 经验, 金币, 灵石, 描述)`：
+`BattleCommand.MONSTERS` 的 4 只固定怪，构造参数顺序为 `(名称, HP, 攻击, 防御, 速度, 境界, 是否Boss, 掉落表, 掉落率, 经验, 金币, 灵石, 描述)`：
 
 | 名称 | HP | 攻击 | 防御 | 速度 | 境界 | 掉落率 | 经验 | 金币 | 灵石 | 掉落表 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -213,7 +216,7 @@ Skill attackSkill = selectAttackSkill(skills, currentMp, mpReserve, attackerRoot
 见[世界 Boss](/player/world-boss)。
 :::
 
-### 千年妖王（`/讨伐 讨伐`）
+### 千年妖王（`/讨伐`）
 
 | 项目 | 值 | 项目 | 值 |
 | --- | --- | --- | --- |
@@ -223,9 +226,9 @@ Skill attackSkill = selectAttackSkill(skills, currentMp, mpReserve, attackerRoot
 | 速度 | 80 | 掉落率 | 0.50 |
 | 经验 / 金币 / 灵石 | 500 / 100 / 50 | 描述 | 千年妖王，修为深厚，已修炼出人形 |
 
-### 团队 Boss（`/boss boss <名字...>`）
+### 团队 Boss（`/boss <玩家1> <玩家2> ...`）
 
-使用 `PvpCommand.BOSS_FORMS` 三形态（与秘境副本共用同一套 `BossForm` 结构）：
+使用 `RaidBossCommand.BOSS_FORMS` 三形态（与秘境副本共用同一套 `BossForm` 结构）：
 
 | 形态 | 名称 | HP 倍率 | 攻击倍率 | 防御倍率 | 速度倍率 | 玩家削弱 | 掉落概率 | 奖励表 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -247,8 +250,8 @@ for (BossForm form : bossForms) totalHp += (int)(form.getHpMultiplier() * 500 * 
 
 总血量 500 + 1200 + 2250 = **3950**。形态按剩余 HP 百分比推进：`< 66%` → 形态 1，`< 33%` → 形态 2，只升不降。玩家削弱 `playerDebuffPercent` 双向生效：玩家造成的伤害 `damage = damage * (1 - debuff)`，同时玩家防御在减伤计算中也被 `adjustedDefense = getFinalDefense * (1 - debuff)` 削弱。
 
-::: warning `/boss boss ...` 这条入口不发放任何奖励
-`CombatService.raidBossFight` 本身只做战斗结算与 HP 回写，**不发放经验/金币/灵石/物品**；奖励逻辑写在调用方 `SecretRealmService.enterRaid` 中。而 `PvpCommand.handleRaidBoss` 只把 `RaidCombatResult` 格式化成战报文本，没有任何发奖代码，`BOSS_FORMS` 的 `rewardTable` 也都是 `new String[0]`。因此走这个入口打完团队 Boss，玩家只会得到战报与可能被打空的 HP（进入重伤），没有任何收益。想要团队 Boss 掉落请走 `/进入秘境 <raid秘境名>` 的副本流程。
+::: warning `/boss ...` 这条入口不发放任何奖励
+`CombatService.raidBossFight` 本身只做战斗结算与 HP 回写，**不发放经验/金币/灵石/物品**；奖励逻辑写在调用方 `SecretRealmService.enterRaid` 中。而 `RaidBossCommand` 只把 `RaidCombatResult` 格式化成战报文本，没有任何发奖代码，`BOSS_FORMS` 的 `rewardTable` 也都是 `new String[0]`。因此走这个入口打完团队 Boss，玩家只会得到战报与可能被打空的 HP（进入重伤），没有任何收益。想要团队 Boss 掉落请走 `/进入秘境 <raid秘境名>` 的副本流程。
 
 另外该入口要求 `playerIds.size() >= 2`，否则提示 `团队Boss战需要至少2名玩家！用法：/boss <玩家1> <玩家2> ...`。
 :::

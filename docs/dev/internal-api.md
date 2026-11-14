@@ -6,31 +6,44 @@
 
 ## 获取服务实例
 
-统一走 `ServiceRegistry`，不要自己 `new`：
+服务由 `ServiceContainer` 统一构造，业务类通过 **构造参数** 拿到只读查询面
+`ServiceLookup`（容器实现它），**不要自己 `new` 服务**：
 
 ```java
-import com.mtxgdn.common.service.ServiceRegistry;
+public class PlayerService implements PlayerApi, BackgroundTaskOwner {
+    private final ServiceLookup services;
 
-PlayerService playerService = ServiceRegistry.getPlayerService();
-TradeService  tradeService  = ServiceRegistry.getTradeService();
+    public PlayerService(ServiceLookup services) {
+        this.services = services;
+    }
+}
 ```
 
-::: tip 为什么必须用 ServiceRegistry
-1. **单例语义** —— 例如 `TradeService` 的静态块会启动定时调度器，
-   自己 `new` 会多起一个调度器，导致到期回收被执行多次。
-2. **可替换** —— 测试里可以替换成临时实现。
-3. **依赖注入** —— 服务之间的依赖（如 `RealmService` 需要 `PlayerService`）
-   由注册表统一装配，避免循环 `new`。
-:::
-
-实现上是双重检查锁的懒加载：
+拿查询面之后按需取服务：
 
 ```java
-public static PlayerService getPlayerService() {
+PlayerService playerService = services.getPlayerService();
+TradeService  tradeService  = services.getTradeService();
+```
+
+::: tip 为什么这样设计
+1. **同一套实例** —— 服务之间互相引用成环（`cave` ↔ `formation`、`player` 是几乎所有服务的上游），
+   所以注入的是"查询面"而不是逐个服务实例；用时再取，环自然消失。
+2. **可替换、可重置** —— `ServiceRegistry.install(...)` 换容器 = 换一整套服务实例，
+   测试里每个测试类都能拿到干净实例；旧容器 `close()` 会停掉它启动的后台任务。
+3. **静态门面只剩三个方法** —— `ServiceRegistry.container()/install()/reset()`。
+   `ServiceInjectionMigrationTest` 锁死：业务类不得直接取容器，服务不得回落到静态容器。
+:::
+
+框架自己在"没有构造参数可用"的边界上取一次容器（指令由反射创建、REST 资源由 Jersey 创建、
+WebSocket 静态持有者、启动流程），其余代码一律构造注入。实现是容器里的双重检查锁懒加载：
+
+```java
+public PlayerService getPlayerService() {
     if (playerService == null) {
-        synchronized (ServiceRegistry.class) {
+        synchronized (this) {
             if (playerService == null) {
-                playerService = new PlayerService();
+                playerService = new PlayerService(this);
             }
         }
     }
@@ -40,7 +53,7 @@ public static PlayerService getPlayerService() {
 
 ## 服务清单
 
-共 **27 个**服务。括号内是构造依赖。
+共 **30 个**服务（`ServiceContainer` 的 30 个字段）。括号内是构造依赖。
 
 ### 角色与成长
 
@@ -78,6 +91,7 @@ public static PlayerService getPlayerService() {
 | `FormationService` | 阵法布置与加成 |
 | `FarmService` | 灵田种植与收获 |
 | `WorldBossService` | 世界 Boss：全服共享血量、池子惰性重建、按伤害分红、超发熔断、挑战冷却 |
+| `DurabilityService` | 装备耐久台账与修理 |
 
 ### 社交与系统
 
@@ -88,15 +102,18 @@ public static PlayerService getPlayerService() {
 | `FriendService` | 好友关系 |
 | `DailyService` | 每日计数与重置 |
 | `MinecraftPlayerBindingService` | Minecraft 账号绑定 |
+| `OfflineRewardService` | 离线收益结算 |
+| `RedeemCodeService` | 兑换码 |
 
-::: warning 有些领域没有注册进 ServiceRegistry
-`ServiceRegistry` 只登记**核心玩法服务**（上面 27 个）。以下能力虽有自己的类，却**不注册**在 `ServiceRegistry`：
+::: warning 有些能力不在容器里
+`ServiceContainer` 只登记**核心玩法服务**（上面 30 个）。以下能力虽有自己的类，但不在容器里：
 
-- `SeasonService`（季节）、`OfflineRewardService`（离线收益）、`RedeemCodeService`（兑换码）、
-  `TeamService`（组队）、`EquipmentFixService`（装备修复）多以静态方法或按需 `new` 调用；
-- 排行榜、玩家搜索等逻辑仍直接写在指令类里（`onebot/command/rank`、`search`）。
+- `SeasonService`（季节）：状态与方法全是 `static` 的"全局时钟"，调度器由容器统一启停
+  （`startScheduler()` / `stopScheduler()`），但实例本身还没收编；
+- `TeamService`（组队）：纯内存单例，按需取同一实例；
+- `EquipmentFixService`（装备修复）：启动期一次性修复。
 
-需要这些能力时按各自约定调用，不要假设它们走 `ServiceRegistry.getXxx()`。
+需要这些能力时按各自约定调用，不要假设能通过 `services.getXxxService()` 拿到。
 :::
 
 ## 数据库访问
@@ -210,19 +227,14 @@ public class MyCommand extends Command {
     }
 
     @Override
-    public String execute(CommandContext ctx, String[] args) {
-        Player player = ServiceRegistry.getPlayerService().getPlayerById(ctx.getPlayerId());
-        if (player == null) {
-            return "请先创建角色。";
-        }
+    public void execute(CommandContext ctx) {
+        PlayerInfo p = requirePlayerInfo(ctx);
+        if (p == null) return;
 
-        Map<String, Object> result = ServiceRegistry.getItemService()
-                .addItem(player.getId(), "mtxgdn:spirit_grass", 1);
+        boolean added = services().getItemService()
+                .addItem(p.getId(), "mtxgdn:spirit_grass", 1);
 
-        if (!Boolean.TRUE.equals(result.get("success"))) {
-            return "操作失败：" + result.get("message");
-        }
-        return "你获得了 1 株灵草。";
+        ctx.reply(added ? "你获得了 1 株灵草。" : "操作失败：背包已满或物品不存在。");
     }
 }
 ```

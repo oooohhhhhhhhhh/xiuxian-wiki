@@ -11,8 +11,8 @@ Buff 系统由 `BuffService` 统一实现，但内部其实是**三套互相独�
 | `src/main/java/com/mtxgdn/game/item/ExpMultiplierEffect.java` | 经验倍率 Buff |
 | `src/main/java/com/mtxgdn/game/item/ReflectionBuffEffect.java` | 伤害反弹 Buff |
 | `src/main/java/com/mtxgdn/game/item/AttributeResetEffect.java` | 洗髓丹：清空全部 Buff |
-| `src/main/java/com/mtxgdn/onebot/command/item/BuffCommand.java` | `/增益` |
-| `src/main/java/com/mtxgdn/rest/GameResource.java` | `GET /game/buff` |
+| `src/main/java/com/mtxgdn/game/command/item/BuffCommand.java` | `/增益` |
+| `src/main/java/com/mtxgdn/rest/GamePlayerResource.java` | `GET /game/buff` |
 
 ## 三套机制对比
 
@@ -114,7 +114,7 @@ public void addExperience(Connection conn, long playerId, long exp) throws SQLEx
     if (player != null) {
         exp = (long) (exp * getFinalExpBonus(player));
         // 经验翻倍丹等 Buff 加成
-        double buffMult = ServiceRegistry.getBuffService().getExpMultiplier(playerId);
+        double buffMult = services.getBuffService().getExpMultiplier(playerId);
         if (buffMult > 1.0) {
             exp = (long) (exp * buffMult);
         }
@@ -141,7 +141,7 @@ public void addExperience(Connection conn, long playerId, long exp) throws SQLEx
 3. 不存在 → `INSERT` 新行，然后按非零项逐项把加成写进 `players` 表：
 
 ```java
-PlayerService playerService = ServiceRegistry.getPlayerService();
+PlayerService playerService = services.getPlayerService();
 if (attackBonus != 0) playerService.addAttack(conn, playerId, attackBonus);
 if (defenseBonus != 0) playerService.addDefense(conn, playerId, defenseBonus);
 if (speedBonus != 0) playerService.addSpeed(conn, playerId, speedBonus);
@@ -186,7 +186,7 @@ static {
 但代价不应与表总量相关：配合 `idx_player_buffs_expire` 索引（`player_buffs(expire_time)`），单次代价只与"已过期的行数"相关。原实现是**每秒**执行一次 `WHERE expire_time <= ?` 的全表扫描，本改造把它降到默认 60 秒一次，活跃玩家则完全由访问时的惰性过期即时处理。
 :::
 
-调度器是**守护线程**（线程名 `buff-expire-sweeper`，`setDaemon(true)`），不会阻止 JVM 退出；需要显式关闭时调 `BuffService.shutdownScheduler()`。
+调度器是**守护线程**（线程名 `buff-expire-sweeper-*`），不会阻止 JVM 退出；它由 `ServiceContainer` 统一启停（`BackgroundTaskOwner`），关服时随容器 `close()` 停止，不再需要手动调 `shutdownScheduler()`。
 
 内存 Buff 即使没被清理线程扫到，读取时也会判定过期并顺手移除：
 
@@ -283,7 +283,7 @@ ID: buff_30_20_0_0
 
 ### `GET /game/buff`
 
-`GameResource.getPlayerBuffs()`，权限 `game.player.info`：
+`GamePlayerResource.getPlayerBuffs()`，权限 `game.player.info`：
 
 | 字段 | 说明 |
 | --- | --- |
@@ -364,4 +364,4 @@ public boolean isInstantEffect() {
 
 ## 线程与关闭
 
-`BuffService` 无实例状态，大量调用点直接 `new BuffService()`；`EXP_BOOSTS`、`REFLECTION_BUFFS`、`scheduler` 都是 `static`，调度器由类静态块在**首次使用该类时**启动，`new BuffService()` 不会创建新线程。关闭走 `BuffService.shutdownScheduler()`，由 `ServerShutdownHook` 注册（`hook.addTask(BuffService::shutdownScheduler)`）。
+`EXP_BOOSTS` / `REFLECTION_BUFFS` 两张内存 Map 仍是 `static`（全服共享），而**调度器已改成实例字段**：`BuffService` 实现 `BackgroundTaskOwner`，由 `ServiceContainer.startBackgroundTasks()` 启动、`close()` 停止；`new BuffService()` 不会再顺手起线程，也不会被允许用来接替容器实例（`ServiceInjectionMigrationTest` 锁死）。

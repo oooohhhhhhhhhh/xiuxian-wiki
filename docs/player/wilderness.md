@@ -533,7 +533,7 @@ int kinds = pool.size() > 1 && ThreadLocalRandom.current().nextBoolean() ? 2 : 1
 cleanupScheduler.scheduleAtFixedRate(() -> {
     RateLimiter.cleanupExpired(3600);
     TokenBlacklist.cleanupExpired(24L * 3600 * 1000);
-    ServiceRegistry.getMapService().maintainWildernessIfNeeded();
+    services.getMapService().maintainWildernessIfNeeded();
 }, 5, 5, TimeUnit.MINUTES);
 ```
 
@@ -1057,9 +1057,9 @@ idBase、nodeCount、refreshIntervalMinutes、regions、namePrefixes、nameSuffi
 
 | 文件 | 职责 |
 | --- | --- |
-| `src/main/java/com/mtxgdn/onebot/command/map/WildernessCommand.java` | `/野外` 指令与输出渲染 |
-| `src/main/java/com/mtxgdn/onebot/command/map/GatherCommand.java` | `/采集` 指令（只转发到 `MapService.gather`） |
-| `src/main/java/com/mtxgdn/onebot/command/map/MapCommand.java` | `/地图`、`go`/`前往`、`list`/`列表`/`浏览`、`tp`/`传送` |
+| `src/main/java/com/mtxgdn/game/command/map/WildernessCommand.java` | `/野外` 指令与输出渲染 |
+| `src/main/java/com/mtxgdn/game/command/map/GatherCommand.java` | `/采集` 指令（只转发到 `MapService.gather`） |
+| `src/main/java/com/mtxgdn/game/command/map/MapCommand.java` | `/地图`、`go`/`前往`、`list`/`列表`/`浏览`、`tp`/`传送` |
 | `src/main/java/com/mtxgdn/game/map/WildernessTerrain.java` | 地形/生态/危险度/连通关系的确定性生成，id 编码 |
 | `src/main/java/com/mtxgdn/game/map/WildernessChunk.java` | 分片的持久化状态：探索记录、资源库存、补货、固化 |
 | `src/main/java/com/mtxgdn/game/map/WildernessChunkStore.java` | 分片文件存储：坐标目录、原子写、LRU 缓存、删除与分桶清理 |

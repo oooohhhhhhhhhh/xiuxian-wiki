@@ -108,7 +108,7 @@
 **灵气加成**（`cultivation_bonus`）只影响闭关修炼。`getCultivationBonus` 的唯一消费方是 `PlayerService.cultivationMultiplier`：
 
 ```java
-double locationMultiplier = ServiceRegistry.getMapService().getCultivationBonus(player.getCurrentLocationId());
+double locationMultiplier = services.getMapService().getCultivationBonus(player.getCurrentLocationId());
 double mult = base * seasonMultiplier * locationMultiplier;
 ```
 

@@ -1,6 +1,6 @@
 # 经济系统
 
-本页覆盖货币、获取与消耗途径、竞拍行、灵庄、商店、签到、兑换比例。核心实现是 `src/main/java/com/mtxgdn/game/service/EconomyService.java`（1024 行）与 `src/main/java/com/mtxgdn/onebot/command/economy/**`，灵石底层由 `ItemService` 的灵石便捷方法实现。
+本页覆盖货币、获取与消耗途径、竞拍行、灵庄、商店、签到、兑换比例。核心实现是 `src/main/java/com/mtxgdn/game/service/EconomyService.java`（1024 行）与 `src/main/java/com/mtxgdn/game/command/economy/**`，灵石底层由 `ItemService` 的灵石便捷方法实现。
 
 ## 货币种类
 
@@ -138,7 +138,7 @@ public static final String[] GRADE_NAMES = {"下品灵石", "中品灵石", "上
 | `/提纯` | `purify`、`灵石提纯` | `<下品\|中品\|上品>` | `game.stone.purify` | `economy` | `PurifyCommand` |
 
 ::: details 同目录下的 `/转化` 不属于经济系统
-`onebot/command/economy/ExchangeCommand.java` 虽然放在 `economy` 包下，但注册的是模块 `energy`、指令 `/转化`（别名 `exchange`、`convert`），用于物品与能量的互相转化，并受实验性插件开关 `experimental_energy_exchange` 控制。它与货币无关。
+`game/command/economy/ExchangeCommand.java` 虽然放在 `economy` 包下，但注册的是模块 `energy`、指令 `/转化`（别名 `exchange`、`convert`），用于物品与能量的互相转化，并受实验性插件开关 `experimental_energy_exchange` 控制。它与货币无关。
 :::
 
 ### REST 接口

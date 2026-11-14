@@ -40,7 +40,7 @@ season:
 
 ## 二、季节时钟
 
-`SeasonService` 使用单线程守护调度器 `global-season-tick`，**每 10 秒**重算一次季节（初始延迟 10 秒），静态块中立即执行一次初始化。
+`SeasonService` 使用单线程守护调度器 `global-season-tick`，**每 10 秒**重算一次季节（初始延迟 10 秒）。季节状态在类初始化时先算一次（纯计算、不起线程），调度器本身由 `ServiceContainer.startBackgroundTasks()` 启动、`close()` 停止。
 
 ```java
 private static void tick() {
@@ -151,7 +151,7 @@ private static void tick() {
 
 ```java
 double seasonMultiplier = SeasonService.getCultivationMultiplier();
-double locationMultiplier = ServiceRegistry.getMapService().getCultivationBonus(player.getCurrentLocationId());
+double locationMultiplier = services.getMapService().getCultivationBonus(player.getCurrentLocationId());
 double mult = base * seasonMultiplier * locationMultiplier;
 ```
 
@@ -215,7 +215,7 @@ if (random.nextDouble() < dropChance) { /* 从 lootTable 抽一件 */ }
 
 ### REST / WebSocket 暴露
 
-`GET /game/...`（`GameResource`）与 WebSocket 的季节接口都会下发以下字段：
+`GET /game/...`（`GameFarmResource`）与 WebSocket 的季节接口都会下发以下字段：
 
 ```json
 {

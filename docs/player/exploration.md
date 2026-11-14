@@ -9,7 +9,7 @@
 | `/游历` | `explore` | 执行一次游历探索 | `game.explore` |
 | `/游历 状态` | `/游历 status` | 查看当前冷却与剩余等待秒数 | 同上 |
 
-`ExploreCommand` 注册于 `src/main/java/com/mtxgdn/onebot/command/exploration/ExploreCommand.java`，玩法模块为 `exploration`（模块被停用后指令视同不存在）。
+`ExploreCommand` 注册于 `src/main/java/com/mtxgdn/game/command/exploration/ExploreCommand.java`，玩法模块为 `exploration`（模块被停用后指令视同不存在）。
 
 ```java
 super(new String[]{"游历", "explore"},
@@ -101,7 +101,7 @@ public static final long BASE_COOLDOWN_MS = 300_000;
 
 ```java
 Monster monster = Monster.random(player.getRealm(), random);
-CombatService combatService = new CombatService();
+CombatService combatService = services.getCombatService();  // 由容器注入的同一实例
 PveCombatResult pveResult = combatService.pveFight(player.getId(), monster);
 
 result.setMonsterDefeated(pveResult.isPlayerWon());

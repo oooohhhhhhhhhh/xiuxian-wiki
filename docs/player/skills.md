@@ -6,7 +6,7 @@
 - 玩法模块：`skill`（`built_in_plugins.skill`，默认启用）
 - 数据表：`skills`（技能定义）、`players_skills`（角色已学技能与等级/熟练度）
 - 服务：`com.mtxgdn.game.service.SkillService`
-- 指令：`com.mtxgdn.onebot.command.combat` 下的 `SkillsCommand`、`LearnSkillCommand`、`BattleTacticCommand`
+- 指令：`com.mtxgdn.game.command.combat` 下的 `SkillsCommand`、`LearnSkillCommand`、`BattleTacticCommand`
 - 战斗结算：`com.mtxgdn.game.service.CombatService`
 
 ## 技能全表

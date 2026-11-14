@@ -24,10 +24,22 @@
 不要为 REST 单独再写一份逻辑。
 :::
 
+## 指令里怎么拿服务
+
+指令由反射无参构造，所以构造参数注入不了；`Command` 基类提供 `services()`
+（由 `CommandScanner` 在注册边界注入 `ServiceLookup`，找不到时回落当前容器）：
+
+```java
+var playerService = services().getPlayerService();
+```
+
+不要在指令里写 `new XxxService()` —— 会造出与容器不一致的第二份状态，
+`ServiceInjectionMigrationTest` 会拦住这种写法。
+
 ## 最小指令
 
 ```java
-package com.mtxgdn.onebot.command.player;
+package com.mtxgdn.game.command.player;
 
 import com.mtxgdn.common.command.Command;
 import com.mtxgdn.common.command.CommandContext;
@@ -303,8 +315,11 @@ return command.isModuleEnabled() ? command : null;
 启动时：
 
 ```java
+// 玩法命令端无关，直接扫 game.command；
+// 各端自带命令包（目前只有 OneBot 账号流程 onebot.command.account）由 AdapterManager 声明。
 CommandScanner.ScanResult cmdScanResult =
-        CommandScanner.scanAndRegister("com.mtxgdn.onebot.command");
+        CommandScanner.scanAndRegister("com.mtxgdn.game.command");
+CommandScanner.scanAndRegister("com.mtxgdn.onebot.command.account");
 LOG.info(cmdScanResult.toString());
 ```
 
@@ -323,10 +338,10 @@ LOG.info(cmdScanResult.toString());
 
 ## 新增一个指令：完整步骤
 
-1. **建类**，放在 `com.mtxgdn.onebot.command.<领域>/` 下，继承 `Command`：
+1. **建类**，放在 `com.mtxgdn.game.command.<领域>/` 下，继承 `Command`（玩法指令端无关；只有 OneBot 账号流程放 `onebot.command.account`）：
 
 ```java
-package com.mtxgdn.onebot.command.player;
+package com.mtxgdn.game.command.player;
 
 public class MyFeatureCommand extends Command {
     public MyFeatureCommand() {

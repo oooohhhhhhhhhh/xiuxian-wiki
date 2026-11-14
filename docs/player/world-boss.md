@@ -5,7 +5,7 @@
 
 实现位于 `src/main/java/com/mtxgdn/game/service/WorldBossService.java`（796 行），
 实体 `game/entity/WorldBoss.java`、`WorldBossDamage.java`，
-QQ 入口为 `src/main/java/com/mtxgdn/onebot/command/worldboss/WorldBossCommand.java`（353 行）。
+QQ 入口为 `src/main/java/com/mtxgdn/game/command/worldboss/WorldBossCommand.java`（353 行）。
 
 相关源码：
 
@@ -13,7 +13,7 @@ QQ 入口为 `src/main/java/com/mtxgdn/onebot/command/worldboss/WorldBossCommand
 | --- | --- |
 | 池子生成 / 惰性重建 / 挑战 / 结算 | `src/main/java/com/mtxgdn/game/service/WorldBossService.java` |
 | Boss 实体与伤害台账实体 | `src/main/java/com/mtxgdn/game/entity/WorldBoss.java`、`WorldBossDamage.java` |
-| QQ 指令与 HTTP 路由 | `src/main/java/com/mtxgdn/onebot/command/worldboss/WorldBossCommand.java` |
+| QQ 指令与 HTTP 路由 | `src/main/java/com/mtxgdn/game/command/worldboss/WorldBossCommand.java` |
 | 内置模块注册 | `src/main/java/com/mtxgdn/plugin/builtin/WorldBossPlugin.java` |
 | 建表 | `src/main/java/com/mtxgdn/db/DatabaseSchema.java`（`createWorldBossesTable` / `createWorldBossDamageTable`） |
 

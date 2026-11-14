@@ -7,8 +7,8 @@
 | 关注点 | 文件 |
 | --- | --- |
 | 灵根与特效定义 | `src/main/java/com/mtxgdn/game/entity/SpiritualRoot.java` |
-| 查看 / 重铸指令 | `src/main/java/com/mtxgdn/onebot/command/player/SpiritualRootCommand.java` |
-| 管理员改灵根 | `src/main/java/com/mtxgdn/onebot/command/admin/SetRootCommand.java` |
+| 查看 / 重铸指令 | `src/main/java/com/mtxgdn/game/command/player/SpiritualRootCommand.java` |
+| 管理员改灵根 | `src/main/java/com/mtxgdn/game/command/admin/SetRootCommand.java` |
 | 创建角色抽取 | `src/main/java/com/mtxgdn/game/service/PlayerService.java`（`createPlayer`） |
 | 重铸后属性重算 | `PlayerService.updateSpiritualRoot` |
 

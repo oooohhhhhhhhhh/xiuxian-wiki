@@ -4,51 +4,30 @@ PVP 采用"异步挑战 → 对方接受 → 立即结算"的模型，没有实�
 
 ## 指令入口
 
-游戏内存在**两个**都能发起 PVP 的指令类，它们共用同一套服务方法，但交互体验不同。
+PVP 只有一个指令入口：`/挑战`（`/决斗`、`/切磋` 是兼容旧名字的别名）。
+历史上曾有两个指令类重复实现 PVP（其中一个没有权限门控、也不推送通知），
+已合并为 [`com.mtxgdn.game.command.combat.PvpCommand`](/dev/commands)；
+PVE 的野外怪 / 个人 Boss / 团队 Boss 则各自拆成独立指令，不再混在 PVP 指令里。
 
-### `/挑战`（`com.mtxgdn.onebot.command.combat.PvpCommand`）
+| 指令 | 别名 | 用途 | 权限 |
+| --- | --- | --- | --- |
+| `/挑战 <角色名>` | `/pvp`、`/决斗`、`/切磋` | 发起 PVP 切磋 | `game.pvp.challenge` |
+| `/挑战 接受` / `/挑战 拒绝` | `accept` / `reject` | 应战 / 回避 | 同上 |
+| `/战斗` | `/battle`、`/fight` | 打野外怪物（PVE，见 [PVE 战斗](/player/combat)） | — |
+| `/讨伐` | `/subjugate` | 打个人 Boss（PVE） | — |
+| `/boss <玩家1> <玩家2> ...` | `/团本` | 团队 Boss（PVE，至少 2 人） | — |
 
-| 别名 | 用法 | 权限 |
-| --- | --- | --- |
-| `挑战`、`pvp` | `/挑战 <角色名>` | `game.pvp.challenge` |
-| | `/挑战 接受`（`accept`） | 同上 |
-| | `/挑战 拒绝`（`reject`） | 同上 |
-
-特点：
+`/挑战` 的行为：
 
 * 无参数时显示**当前战斗策略**与提示；
 * 发起后回复 `⚔ 你向【X】发起了切磋挑战！<战术>\n等待对方回应中（30秒）...`；
 * 通过 `notifyTarget` 向被挑战者**推送 QQ 私聊通知**（优先使用当前渠道的绑定：QQ 官方渠道用 `QqOfficialBindingService(appId)`，OneBot 渠道用 `QqBindingService`），文案为 `⚔ 【X】向你发起了切磋挑战！<战术>\n回复 /挑战 接受 迎战，/挑战 拒绝 回避（30秒超时自动取消）`；
 * 接受后战报通过 `sendBattleReport` **分条发送**（按空行、`-- 第 N 回合 --`、`🏆`、`🤝`、`获得`、`惜败` 等断点切分，每组最多 5 行）。
 
-### `/决斗`（`com.mtxgdn.onebot.command.pvp.PvpCommand`）
-
-| 别名 | 用法 | 权限 |
-| --- | --- | --- |
-| `决斗`、`切磋`、`fight` | `/决斗 <角色名>` | 无（`permission = null`） |
-| `战斗` | `/战斗 战斗`（打野外怪，非 PVP） | 无 |
-| `讨伐` | `/讨伐 讨伐`（打 Boss，非 PVP） | 无 |
-| `boss` | `/boss boss <名字...>`（团队 Boss，非 PVP） | 无 |
-
-特点：
-
-* 无参数时只打印用法；
-* 发起后**不推送私聊通知**，被挑战者需自行感知；
-* 接受后一次性返回整段战报。
-
-### 两者的实质区别
-
-| 维度 | `/挑战` | `/决斗` |
-| --- | --- | --- |
-| 服务方法 | `createChallenge` → `acceptChallenge` | `createChallenge` → `acceptChallenge` |
-| 权限校验 | `game.pvp.challenge` | 无 |
-| 被挑战者通知 | QQ 私聊推送 | 无 |
-| 战报呈现 | 分条（每组 ≤ 5 行） | 单条长文本 |
-| 无参数行为 | 显示当前战术 | 显示用法 |
-| 战斗策略显示 | 发起方与目标方都显示 | 不显示 |
+三条 PVE 指令直接结算、不经过"接受/拒绝"，它们的怪物与 Boss 数值见 [PVE 战斗](/player/combat)。
 
 ::: tip 没有"立即开打"的 PVP 指令
-所有指令入口都走 `createChallenge`，必须由被挑战者在 30 秒内回复"接受"才会真正结算。`pvpChallenge(challengerPlayerId, targetPlayerId)` 是唯一的"免确认直接开打"路径，它**只被 REST 接口调用**（`POST /api/game/pvp/challenge`，见 `GameResource.pvpChallenge`），游戏内没有对应指令。
+所有 **PVP** 入口都走 `createChallenge`，必须由被挑战者在 30 秒内回复"接受"才会真正结算。`pvpChallenge(challengerPlayerId, targetPlayerId)` 是唯一的"免确认直接开打"路径，它**只被 REST 接口调用**（`POST /api/game/pvp/challenge`，见 `GameBattleResource`），游戏内没有对应指令。
 :::
 
 ## 挑战流程
@@ -219,7 +198,7 @@ private String determinePvpWinner(int challengerHp, int targetHp, String challen
 防守方若持有反射 Buff（`BuffService.getReflectionPercent`，反射丹 30%），会把伤害的一部分反弹给攻击方：
 
 ```java
-int reflectPercent = ServiceRegistry.getBuffService().getReflectionPercent(defender.getId());
+int reflectPercent = services.getBuffService().getReflectionPercent(defender.getId());
 if (reflectPercent > 0 && damage > 0) {
     int reflected = Math.max(1, damage * reflectPercent / 100);
     attackerState.playerHp -= reflected;
@@ -262,7 +241,7 @@ private String checkSafeZone(long challengerPlayerId, long targetPlayerId) {
 | 项目 | 说明 |
 | --- | --- |
 | 判定依据 | **只看 `is_safe_zone`**，与危险度无关 |
-| 覆盖路径 | `/挑战` 发起、`/挑战` 接受、`/决斗` 等全部 4 条 PVP 入口都会校验 |
+| 覆盖路径 | `/挑战` 发起与 `/挑战 接受` 两条 PVP 入口都会校验 |
 | 出厂安全区 | 青云村、苍月镇、太虚城、天机阁（这 4 地的危险度也都是 0） |
 
 ::: tip 为什么两个字段要分离
@@ -295,7 +274,7 @@ private static final double PK_LOOT_RATIO_PER_DANGER = 0.05;
 | 计算式 | `loot = max(1, round(败者灵石 × 0.05 × 危险度))` |
 | 防并发造币 | 以 `removeSpiritStones` 的**返回值**为准，只有真正扣成功才发放 |
 | 门槛为何设在 3 | 让 PK 收益只存在于真正的凶地——否则全图都会变成猎杀场，低危地带也会被大号堵门 |
-| 适用范围 | `/挑战` 与 `/决斗` 共用 `executePvp`，因此掠夺对两者都生效 |
+| 适用范围 | 所有 PVP 路径共用 `executePvp`，因此掠夺对它们都生效 |
 | 战报文案 | 结算时输出 `☠ {危险度名称}之地，……` |
 
 ## 奖励与惩罚
@@ -362,14 +341,9 @@ private long calculateExpReward(Player winner, Player loser, boolean challengerW
 | 8 | 次数按天重置 | `DailyService.ensureDailyReset` | 读写 `pvp_count` 前都会先复位整行 |
 | 9 | 并发安全 | `ConcurrentHashMap` + `removeIf(isExpired)` | 待处理挑战无持久化，重启即全部丢失 |
 
-::: warning 两个指令类持有的 CombatService 实例不同，跨指令接受会失败
-`pendingChallenges` 是 `CombatService` 的实例字段：
-
-* `com.mtxgdn.onebot.command.combat.PvpCommand` 用 `ServiceRegistry.getCombatService()`（共享实例）；
-* `com.mtxgdn.onebot.command.pvp.PvpCommand` 在构造函数里 `this.combatService = new CombatService()`（**独立实例**）；
-* `SecretRealmService`、`ExplorationService` 也各自 `new CombatService()`。
-
-因此用 `/挑战 X` 发出的挑战只能由 `/挑战 接受` 接下；用 `/决斗 X` 发出的挑战只能由 `/决斗 接受` 接下。混用会得到 `没有待接受的挑战，可能已超时`。另外服务端一旦重启，所有待接受挑战立即消失。
+::: tip 所有入口共享同一个 CombatService
+指令通过 `Command.services()` 拿到的是 `ServiceContainer` 里的同一个 `CombatService` 实例，`pendingChallenges` 就存在该实例里，因此 `/挑战 X` 发出的挑战可以用 `/挑战 接受` 接下。
+待处理挑战**只在内存**，服务端一旦重启会全部消失（30 秒超时也会让它失效）。
 :::
 
 ## 相关称号
@@ -386,7 +360,7 @@ grantIf(granted, playerId, "arena_champion", player.getPvpWins() >= 50);  // 擂
 
 ## REST 接口
 
-`POST /api/game/pvp/challenge`（`src/main/java/com/mtxgdn/rest/GameResource.java`），权限 `game.pvp.challenge`。
+`POST /api/game/pvp/challenge`（`src/main/java/com/mtxgdn/rest/GameBattleResource.java`），权限 `game.pvp.challenge`。
 
 | 项目 | 内容 |
 | --- | --- |

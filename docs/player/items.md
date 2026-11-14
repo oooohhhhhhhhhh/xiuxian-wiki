@@ -198,7 +198,17 @@ private void checkCapacity(long playerId, String itemKey) {
 
 ## 使用物品
 
-`ItemService.useItem(playerId, itemKey)` 的流程：
+`/使用` 支持两种引用方式：
+
+* **背包序号**（`/使用 1`）：`/背包` 列表按 `item_key` 排序展示，序号从 1 开始；
+  指令层先用 `ItemService.resolveInventoryItemReference` 把序号换成 `itemKey`，
+  越界或非数字则原样交给按名称/key 的路径；
+* **物品名称或 key**（`/使用 回血丹`、`/使用 mtxgdn:healing_pill`）。
+
+服务层 `ItemService.useItem(playerId, itemKey)` 只接受已解析的 `itemKey`。
+装备类物品目前**也能被 `/使用`**（会执行一次装备效果并消耗掉物品）——这是待修问题，
+正常玩法请用 `/装备`；阵图是例外，走特殊分支布阵。流程：
+
 
 1. `ItemRegistry.resolve` 解析物品；
 2. **阵图特判**：若 `FormationService.treasureKeyToFormationKey(fullKey) != null`，转交 `FormationService.placeFormationFromTreasure`——使用 1 张阵图即布置对应 1 级阵法，不另扣灵石；
@@ -321,11 +331,11 @@ private void checkCapacity(long playerId, String itemKey) {
 
 | 指令 | 别名 | 作用 | 权限 |
 | --- | --- | --- | --- |
-| `/背包` | `backpack` | 查看背包（`容量: 已用/上限` + 物品与描述） | `game.inventory.view` |
-| `/使用 <物品>` | `itemuse` | 使用物品 | `game.item.use` |
-| `/装备 <物品> <部位>` / `/卸下 <部位>` | `equip` / `unequip` | 穿戴 / 卸下装备 | `game.equipment.equip` |
+| `/背包` | `backpack` | 查看背包（`容量: 已用/上限` + **带序号**的物品与描述） | `game.inventory.view` |
+| `/使用 <序号或物品>` | `itemuse` | 使用物品；序号来自 `/背包` | `game.item.use` |
+| `/装备 <序号或物品> <部位>` / `/卸下 <部位>` | `equip` / `unequip` | 穿戴 / 卸下装备（部位可写中文 `武器`/`防具`/`饰品`） | `game.equipment.equip` |
 | `/已装备` | `equipped` | 查看三栏位当前装备 | `game.inventory.view` |
-| `/强化 <栏位>` | `enhance` | 强化已装备物品 | `game.equipment.enhance` |
+| `/强化 <栏位>` | `enhance` | 强化已装备物品（栏位可写中文） | `game.equipment.enhance` |
 | `/物品列表` | `itemmap` | 按类型分组的「中文名 ↔ key」映射表 | `game.player.info` |
 | `/物品列表 [页数]` | `items` / `allitems` | 管理端分页全量列表（每页 20 条） | `admin.status` |
 | `/回收 <物品> [数量]` | `recycle` | 回收为灵石（价格的 30%） | — |
@@ -334,7 +344,7 @@ private void checkCapacity(long playerId, String itemKey) {
 | `/转化 <物品> [数量]` | `exchange` / `convert` | 物品 → 能量（实验性） | — |
 | `/发放 <玩家> <key> [数量]` | `give` | 管理端发放物品 | `admin.items.give` |
 
-REST 侧对应 `GameResource` 的 `GET /game/equipment`、`POST /game/equipment/equip`、`POST /game/equipment/unequip`、`POST /game/equipment/enhance`，以及各指令自带的 `addRoute` 路由。
+REST 侧对应 `GameInventoryResource` 的 `GET /game/equipment`、`POST /game/equipment/equip`、`POST /game/equipment/unequip`、`POST /game/equipment/enhance`，以及各指令自带的 `addRoute` 路由。
 
 ## 源码与文档不一致之处
 

@@ -7,7 +7,7 @@
 | 关注点 | 文件 |
 | --- | --- |
 | 闭关开始/结束/倍率汇总 | `src/main/java/com/mtxgdn/game/service/PlayerService.java` |
-| QQ 指令入口 | `src/main/java/com/mtxgdn/onebot/command/cultivation/CultivateCommand.java`、`CultivateStopCommand.java` |
+| QQ 指令入口 | `src/main/java/com/mtxgdn/game/command/cultivation/CultivateCommand.java`、`CultivateStopCommand.java` |
 | 心魔判定 | `src/main/java/com/mtxgdn/game/service/HeartDemonService.java` |
 | 离线收益 | `src/main/java/com/mtxgdn/game/service/OfflineRewardService.java` |
 | 季节倍率 | `src/main/java/com/mtxgdn/game/service/SeasonService.java` |

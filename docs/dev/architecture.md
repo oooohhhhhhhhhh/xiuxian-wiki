@@ -25,7 +25,7 @@ graph TB
 
     subgraph 指令层
         CR[CommandRegistry]
-        CMD[onebot/command/**: 22 个指令包]
+        CMD[game/command/**: 20 个玩法指令包]
     end
 
     subgraph 玩法服务层
@@ -39,7 +39,7 @@ graph TB
     end
 
     subgraph 基础设施
-        SR[ServiceRegistry]
+        SR[ServiceContainer + ServiceRegistry 门面]
         DB[(SQLite / MySQL)]
         PD[PlayerDataService]
         PLG[插件系统]
@@ -83,7 +83,7 @@ graph TB
 | 6 | 修复装备数据一致性 | `EquipmentFixService.fixEquipmentData()` |
 | 7 | 扫描注册秘境 | `SecretRealmScanner.scanAndRegister()` |
 | 8 | 扫描注册游历事件 | `ExplorationEventScanner.scanAndRegister()` |
-| 9 | 扫描注册指令 | `CommandScanner.scanAndRegister("com.mtxgdn.onebot.command")` |
+| 9 | 扫描注册指令 | `CommandScanner.scanAndRegister("com.mtxgdn.game.command")`，再由 `AdapterManager.builtInCommandPackages()` 补各端命令包（目前只有 OneBot 账号流程） |
 | 10 | 初始化插件系统 | `PluginManager.init(new File("plugins"))` 然后 `loadPlugins()` |
 | 11 | 初始化内置玩法模块 | `BuiltInPluginRegistry.registerAll(PluginCatalog.createAll())` → `init()` → `enableAll(ctx)` |
 | 12 | 启动 HTTP 服务 | Grizzly 绑定 `http://<server.host>:<server.port>/api/`，扫描 `com.mtxgdn.rest` |
@@ -109,9 +109,9 @@ graph TB
 | 包 | 职责 |
 | --- | --- |
 | `com.mtxgdn.Main` | 启动装配、关闭钩子、运行模式 |
-| `common` | 通用基础设施：指令基类与注册表、服务注册表、消息封装 |
+| `common` | 通用基础设施：指令基类与注册表、服务容器与查询面（`ServiceContainer`/`ServiceLookup`）、消息封装 |
 | `game` | **玩法核心**：实体（31）、物品系统（`game.item` 下 22 个 Effect/Type/Registry/Scanner 类）、玩法服务（31）、境界配置、秘境/游历事件。**真正的物品定义类在 `data/mtxgdn/item`**（114 个物品 + 1 个法宝基类 `FormationItem`） |
-| `onebot` | OneBot 协议接入 + **全部玩家指令实现**（22 个指令子包） |
+| `onebot` | OneBot 协议接入；账号流程指令仍在 `onebot.command.account`/`qq`，其余玩法指令已迁到 `game.command` |
 | `qq` | QQ 官方机器人接入 |
 | `minecraft` | Minecraft 内嵌通道、MOTD 服务器 |
 | `rest` | Jersey 资源类、鉴权与权限过滤器、异常映射 |
@@ -125,21 +125,41 @@ graph TB
 | `service` | 用户/验证码等账号层服务 |
 | `client` / `demo` / `server` | 客户端辅助、演示模式、服务器配置与关闭钩子 |
 
-## 服务注册表
+## 服务容器
 
-`ServiceRegistry` 是服务类的集中获取点，避免到处 `new`：
+服务的构造与接线集中在 `com.mtxgdn.common.service.ServiceContainer`：
+
+* **`ServiceLookup`**：只读的服务查询面（30 个 `getXxxService()`），容器实现它；
+* **`ServiceContainer`**：懒加载双重检查锁，一个实例一套服务；
+* **`ServiceRegistry`**：只剩 `container()` / `install()` / `reset()` 三个静态方法，
+  给启动流程、框架边界、测试夹具用；
+* **`ServiceInjectionMigrationTest`**：锁死"业务类不得直接取容器、服务不得回落到静态容器"。
+
+业务代码通过构造参数拿查询面：
 
 ```java
-PlayerService playerService = ServiceRegistry.getPlayerService();
+public class PlayerService implements PlayerApi, BackgroundTaskOwner {
+    private final ServiceLookup services;
+
+    public PlayerService(ServiceLookup services) {
+        this.services = services;
+    }
+}
 ```
 
-这样做保证了单例语义 —— 例如 `TradeService` 的定时调度器只会有一份
-（`scheduler` 是 `private static final` + `static{}` 注册，类加载只执行一次，与实例数无关）。
+服务之间的环（`cave` ↔ `formation`、`player` 是几乎所有服务的上游）用查询面解决：
+注入的是"查询面"，具体服务在用时再取。
 
-注意：`ServiceRegistry` **只提供懒加载 getter，没有任何 setter / inject / reset**，
-因此服务实例在运行期是**不可替换**的，测试里也无法注入临时实现。
+### 生命周期
 
-详见[内部服务 API](/dev/internal-api)。
+* **后台定时任务**：服务实现 `BackgroundTaskOwner`（`startBackgroundTasks()` /
+  `stopBackgroundTasks()`，幂等）。`ServiceContainer.startBackgroundTasks()` 统一启动并记账
+  （`Main` 在数据库就绪后调用），`close()` 按逆序停止 —— 因此 `reset()` = 换一套实例 + 停掉旧线程；
+* **换库回调**：容器在构造时注册 `DatabaseManager.addReinitListener`，`close()` 时摘掉，
+  换库时清掉服务缓存，不会对着已废弃实例清缓存。
+
+旧版本那套"静态字段 + `static{}` 启动调度器"的写法已经全部移除
+（守护测试：`ScheduledTaskLifecycleTest` / `BackgroundTaskLifecycleTest`）。
 
 ## 线程模型
 
@@ -147,15 +167,18 @@ PlayerService playerService = ServiceRegistry.getPlayerService();
 | --- | --- | --- |
 | Grizzly IO 线程 | `performance.grizzly_io_threads`（默认 2） | 网络读写 |
 | Grizzly 工作线程 | `performance.grizzly_worker_cores` / `_max`（默认 4 / 8） | 处理 HTTP 请求 |
-| `trade-market-sweeper` | `TradeService` 静态块 | 坊市到期回收（每 60 秒）+ 价格历史清理（每 6 小时） |
+| `trade-market-sweeper` | `TradeService`（由容器启动） | 坊市到期回收（每 60 秒）+ 价格历史清理（每 6 小时） |
+| `player-auto-heal` / `buff-expire-sweeper` / `cave-spirit-energy` | 对应服务（由容器启动） | 自动回血 / 过期增益回收 / 洞府灵气增长 |
+| `formation-tick` / `auction-settler` / `sect-succession-sweeper` / `global-season-tick` | 对应服务（由容器启动） | 阵法检查 / 拍卖结算 / 宗门继位与工资 / 天象刷新 |
 | `cleanup-scheduler` | `Main` | 每 5 分钟清理限流窗口与 Token 黑名单 + 野外分片补货/回收（`MapService.maintainWildernessIfNeeded()`） |
 | `PlayerDataService` 调度线程 | `PlayerDataService` | 每 `player-data.auto-sync-seconds` 秒落盘脏数据 |
 
-::: warning 后台任务线程都是守护线程
-`trade-market-sweeper` 与 `cleanup-scheduler` 都设置为 daemon，
-进程退出时不会阻塞关闭。但它们**不会被自动停止**，所以
-`Main.registerShutdownHook()` 里显式调用了 `TradeService.shutdown()` 与
-`PlayerDataService.shutdown()` 来优雅收尾。
+::: tip 后台任务由容器统一启停
+这些定时任务全部通过 `Schedulers.newDaemonSingle(name)` 创建（daemon + 可读线程名），
+并实现 `BackgroundTaskOwner`：`Main` 在数据库就绪后调用
+`ServiceContainer.startBackgroundTasks()` 统一启动，关服时 `container().close()` 按逆序停止 ——
+**不再逐个服务手写 shutdown**（漏一个就是关服后还在查已关闭的连接池）。
+`TestBase` 的 `reset()` 也会停掉旧容器的任务，测试进程里没有跨测试类的后台线程。
 :::
 
 ## 关闭流程
@@ -166,13 +189,14 @@ PlayerService playerService = ServiceRegistry.getPlayerService();
 AdapterManager.stopAll()                     ← 1. 停所有消息通道适配器
 GameWebSocketApp.shutdownGracefully()        ← 2. 关 WebSocket 应用
 MinecraftMotdServer.stop()                   ← 3. 停 MOTD 服务器
-TradeService.shutdown()                      ← 4. 停坊市到期回收与价格历史调度器
+ServiceRegistry.container().close()          ← 4. 停止全部后台定时任务 + 摘换库回调
 PlayerDataService.shutdown()                 ← 5. 停调度器 + flushDirty() 把脏数据落盘
-BuiltInPluginRegistry.disableAll(...)        ← 6. 停用全部内置玩法模块
-DatabaseManager.shutdown()                   ← 7. 关闭连接池（最后一步）
+CommandExecutor.shutdown()                   ← 6. 停指令执行线程池
+BuiltInPluginRegistry.disableAll(...)        ← 7. 停用全部内置玩法模块
+DatabaseManager.shutdown()                   ← 8. 关闭连接池（最后一步）
 ```
 
-实现见 `ServerShutdownHook.createDefault()` 与 `Main.registerShutdownHook()` 里依次 `addTask` 的 7 个任务。
+实现见 `ServerShutdownHook.createDefault()` 与 `Main.registerShutdownHook()` 里依次 `addTask` 的任务。
 
 ::: danger 数据落盘依赖关闭钩子
 玩家数据默认每 30 秒同步一次，**最后一次的脏数据靠关闭钩子里的 `flushDirty()` 落盘**。

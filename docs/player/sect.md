@@ -1,6 +1,6 @@
 # 宗门
 
-宗门是玩家组建的长期组织：可以收徒、捐献、共享仓库、升级、转让宗主、主动退位、解散，并在实验性开关打开时发起宗门战。实现位于 `src/main/java/com/mtxgdn/game/service/SectService.java`（2012 行）、实体 `game/entity/Sect.java`、`SectMember.java`，QQ 入口为 `src/main/java/com/mtxgdn/onebot/command/sect/SectCommand.java`（573 行）。
+宗门是玩家组建的长期组织：可以收徒、捐献、共享仓库、升级、转让宗主、主动退位、解散，并在实验性开关打开时发起宗门战。实现位于 `src/main/java/com/mtxgdn/game/service/SectService.java`（2012 行）、实体 `game/entity/Sect.java`、`SectMember.java`，QQ 入口为 `src/main/java/com/mtxgdn/game/command/sect/SectCommand.java`（573 行）。
 
 所有宗门操作都走**单条指令 + 子命令**形式：`/宗门 <子命令> [参数]`，别名 `sect`，权限节点 `game.sect.manage`，模块 `sect`。
 

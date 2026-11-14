@@ -120,7 +120,7 @@ QQ 官方平台下发的是 **openid**，与真实 QQ 号不是同一身份体�
 | --- | --- | --- |
 | `players` | 角色主表 | `user_id`(唯一)、`name`、`spiritual_root`、`level`、`realm`、`sub_realm`、属性六维、`gold`、`cultivation_progress`、`is_cultivating`、`cultivation_start_time`、`last_breakthrough_time`、`breakthrough_pity`(默认 0)、`consolidation`(默认 0)、`lang`(默认 `''`)、`last_active_time` |
 | `players_items` | 背包 | `(player_id, item_key)` 唯一、`quantity` |
-| `players_equipment` | 已装备物品 | `(player_id, slot)` 唯一、`item_key`、`enhance_level` |
+| `players_equipment` | 已装备物品 | `(player_id, slot)` 唯一、`item_key`、`enhance_level`；`slot` 只允许规范名 `weapon/armor/accessory`（迁移 027 修正历史别名） |
 | `skills` / `players_skills` | 技能定义 / 已学技能 | `required_realm`、`damage`、`mp_cost`、`cooldown_seconds` / `level`、`proficiency` |
 | `techniques` / `players_techniques` | 功法定义 / 已学功法 | 各类 `*_bonus`、`cultivation_speed_bonus`、`exp_bonus` / `level`、`is_equipped` |
 | `recipes` | 炼制配方 | `result_item_key`、`material1..3_key/count`、`success_rate` |
@@ -206,7 +206,7 @@ QQ 官方平台下发的是 **openid**，与真实 QQ 号不是同一身份体�
 | --- | --- | --- |
 | `map_locations` | 地图地点 | `id`(手工指定)、`name`、`description`、`region`、`min_realm`、`is_safe_zone`、`cultivation_bonus`、`exploration_bonus`、`danger_level`(0~4)、`is_wilderness`、`expires_at`、`entry_location_id` |
 | `map_connections` | 地点连接 | `from_location_id`、`to_location_id`、`travel_time_seconds`(默认 5) |
-| `caves` | 洞府 | `(player_id)` 唯一、`level`、`spirit_energy`、`max_spirit_energy`、`cultivation_bonus`、`last_collect_time` |
+| `caves` | 洞府 | `(player_id)` 唯一、`level`、`spirit_energy`、`max_spirit_energy`、`cultivation_bonus`、`last_collect_time`、`last_meditate_time`（迁移 026，冥想冷却） |
 | `formations` | 阵法 | `formation_key`、`level`、`spirit_energy_boost`、`cultivation_bonus`、`defense_bonus`、`heart_demon_resist`、`expires_at`、`active` |
 | `farm_plots` | 灵田地块 | `(player_id, plot_index)`、`state`、`seed_key`、`crop_key`、`planted_time`、`harvest_time`、`growth_stage`、`water_level`、`fertilizer_level`、`wilted_time`、`yield`、`settled_time`、`root_bonus`、`season_modifier`、`pest_state`、`pest_time`、`crop_quality` |
 | `player_map_exploration` | 玩家探索记录 | `(player_id, location_id)` 唯一、`first_visited_at`；只记"首次"，重复到达不写 |

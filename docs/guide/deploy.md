@@ -351,7 +351,7 @@ java -Xms512m -Xmx2g -jar main-0.1.0.jar --nogui
 ::: tip 关于「坊市回收周期」的常见误解
 `market.price_history_cleanup_interval_hours` 控制的是**价格历史清理**任务的间隔，
 **不是**到期挂单回收的间隔。到期挂单回收**固定每 60 秒扫描一次**
-（首个 tick 延迟 20 秒等数据库就绪），周期在 `TradeService` 静态块里硬编码，
+（首个 tick 延迟 20 秒等数据库就绪），周期在 `TradeService.startBackgroundTasks()` 里硬编码，
 不通过配置项调整。
 :::
 

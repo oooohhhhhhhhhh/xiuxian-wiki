@@ -7,7 +7,7 @@
 - 数据表：`player_titles`（角色已获得称号与装备状态）
 - 称号定义：`com.mtxgdn.game.title.TitleRegistry`（**硬编码在代码中，不落库**）
 - 服务：`com.mtxgdn.game.service.TitleService`
-- 指令：`com.mtxgdn.onebot.command.player.TitleCommand`
+- 指令：`com.mtxgdn.game.command.player.TitleCommand`
 
 ::: tip 称号定义不存数据库
 `TitleRegistry.init()` 在首次构造 `TitleService` 时把 19 个称号注册进内存 `LinkedHashMap`；

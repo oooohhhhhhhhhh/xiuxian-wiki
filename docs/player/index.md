@@ -1,6 +1,6 @@
 # 玩法总览与全指令表
 
-本页是**玩家侧的总入口**：先讲清楚怎么玩、有哪些系统，再给出**全部 81 条指令**的完整清单。
+本页是**玩家侧的总入口**：先讲清楚怎么玩、有哪些系统，再给出**全部 87 条指令**的完整清单。
 
 ::: tip 想找某个功能怎么用？
 按 `Ctrl+F` 搜指令名（如 `/打坐`）或搜关键词（如"坊市"）。
@@ -83,7 +83,7 @@ QQ 里发 `/打坐`，Minecraft 里发 `/xiuxian 打坐`（前缀由 `minecraft.
 | 系统 | 页面 | 一句话 |
 | --- | --- | --- |
 | PVE | [PVE 战斗](/player/combat) | 野外怪、妖兽、团队 Boss |
-| PVP | [PVP 对战](/player/pvp) | 挑战/决斗其他玩家，每日 10 次 |
+| PVP | [PVP 对战](/player/pvp) | 挑战其他玩家（`/挑战`，`/决斗`/`/切磋` 为兼容别名），每日 10 次 |
 | 世界 Boss | [世界 Boss](/player/world-boss) | 全服共享血量，按伤害分红，补最后一刀另有加成 |
 
 ### 探索与地图
@@ -119,7 +119,7 @@ QQ 里发 `/打坐`，Minecraft 里发 `/xiuxian 打坐`（前缀由 `minecraft.
 
 ## 全部指令
 
-共 **83 条指令**（不含别名，`Command` 子类实测 83 个）。表格里：
+共 **87 条指令**（不含别名，`Command` 子类实测 87 个）。表格里：
 
 - **指令** 列是主名，括号内是别名
 - **模块** 列是该指令所属的内置玩法模块，对应 `config/plugins/<模块名>.yml` 的 `enabled`
@@ -167,11 +167,13 @@ QQ 里发 `/打坐`，Minecraft 里发 `/xiuxian 打坐`（前缀由 `minecraft.
 | --- | --- | --- | --- |
 | **/功法** （/technique /tj） | 功法系统 — 学习/装备/卸下/升级功法 | — | `technique` |
 | **/技能** （/skills） | 查看可用技能列表 | `game.player.info` | `skill` |
-| **/决斗** （/切磋 /fight /战斗 /讨伐 /boss） | 决斗系统 | — | `pvp` |
-| **/挑战** （/pvp） | 挑战其他修士 | `game.pvp.challenge` | `pvp` |
+| **/挑战** （/pvp /决斗 /切磋） | 挑战其他修士（异步切磋：`/挑战 接受`、`/挑战 拒绝`） | `game.pvp.challenge` | `pvp` |
+| **/战斗** （/battle /fight） | 随机挑战一只野外怪物 | — | `pvp` |
+| **/讨伐** （/subjugate） | 挑战个人 Boss「千年妖王」 | — | `pvp` |
+| **/boss** （/团本） | 发起团队 Boss 战（至少 2 人） | — | `pvp` |
 | **/学习** （/learn） | 学习指定技能（支持名称或ID） | `game.skill.learn` | `skill` |
 | **/战斗策略** （/战术 /tactic） | 设置战斗策略 | — | `skill` |
-| **/世界boss** （/worldboss） | 世界 Boss：查看池子 / `挑战` / `排行` / `刷新`（管理员） | `game.player.info` | `world_boss` |
+| **/世界boss** （/worldboss） | 世界 Boss：查看池子 / `挑战` / `排行` / `刷新`（管理员） | — | `world_boss` |
 
 ### 背包
 
@@ -183,6 +185,7 @@ QQ 里发 `/打坐`，Minecraft 里发 `/xiuxian 打坐`（前缀由 `minecraft.
 | **/物品列表** （/itemmap） | 查看物品中文名与key映射表 | `game.player.info` | `inventory` |
 | **/卸下** （/unequip） | 卸下指定部位的装备 | `game.equipment.equip` | `inventory` |
 | **/已装备** （/equipped） | 查看当前装备 | `game.inventory.view` | `inventory` |
+| **/修理** （/repair） | 查看/修理装备耐久（`武器`/`护甲`/`饰品`/`全部`） | — | `inventory` |
 | **/装备** （/equip） | 穿戴装备到指定部位 | `game.equipment.equip` | `inventory` |
 
 ### 探索
@@ -324,7 +327,7 @@ QQ 里发 `/打坐`，Minecraft 里发 `/xiuxian 打坐`（前缀由 `minecraft.
 | `admin.*` | 管理权限，只有管理员角色有 |
 | `qq.command.trace` | QQ 侧指令追踪 |
 
-::: warning 22 条指令没有独立权限码
+::: warning 25 条指令没有独立权限码
 它们依赖"已绑定账号"这一层校验。
 具体判定见[权限系统](/dev/permissions)。
 :::
@@ -352,6 +355,7 @@ QQ 里发 `/打坐`，Minecraft 里发 `/xiuxian 打坐`（前缀由 `minecraft.
 | `/游历` | 300 秒（巽风灵根 210 秒） |
 | `/秘境` | 每个秘境自己的 `cooldownMs` |
 | 地图移动 | 5 秒 |
+| `/洞府 meditate`（洞府冥想） | 300 秒（`cave.meditate_cooldown_seconds` 可配） |
 
 ::: warning 秘境冷却是全局共享的
 所有秘境共写 `players.last_secret_realm_time` 这一个时间戳，

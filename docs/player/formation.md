@@ -6,7 +6,7 @@
 - 玩法模块：`formation`（`config/plugins/formation.yml` 的 `enabled`，默认启用）。模块停用后指令在 `/帮助` 中隐藏，分发被拦截。
 - 数据表：`formations`
 - 服务：`com.mtxgdn.game.service.FormationService`
-- 指令：`com.mtxgdn.onebot.command.formation.FormationCommand`（同时注册了 5 条 HTTP 路由）
+- 指令：`com.mtxgdn.game.command.formation.FormationCommand`（同时注册了 5 条 HTTP 路由）
 
 ## 阵法总表
 
@@ -143,7 +143,7 @@
 ```java
 // ItemService.useItem —— 阵图物品优先分流到 FormationService
 if (FormationService.treasureKeyToFormationKey(fullKey) != null) {
-    return ServiceRegistry.getFormationService().placeFormationFromTreasure(playerId, fullKey);
+    return services.getFormationService().placeFormationFromTreasure(playerId, fullKey);
 }
 ```
 
@@ -168,7 +168,7 @@ if (FormationService.treasureKeyToFormationKey(fullKey) != null) {
 // PlayerService.cultivationMultiplier
 double mult = base * seasonMultiplier * locationMultiplier;
 // ……灵根、天象、功法、称号各自相乘……
-int formationBonus = ServiceRegistry.getFormationService().getTotalCultivationBonus(player.getId());
+int formationBonus = services.getFormationService().getTotalCultivationBonus(player.getId());
 if (formationBonus > 0) {
     mult *= (1 + formationBonus / 100.0);
 }
@@ -211,7 +211,7 @@ if (defenderState.formationReductionPct > 0) {
 
 - 后台定时任务每 **60 秒**执行一次 `tickFormations`，把 `expires_at < 当前时间` 的阵法 `active` 置 0；模块 `formation` 停用时该任务直接跳过。
 - `getActiveFormation` 读取时会二次判断 `isExpired()`，若已过期则立即失效并返回 `null`（即使定时任务尚未跑到）。
-- 服务停机时 `FormationService.shutdown()` 由 `ServerShutdownHook` 调用，关闭调度线程。
+- 调度线程由 `ServiceContainer` 统一管理：启动时 `startBackgroundTasks()`，停机时 `container().close()` 关闭（无需逐个服务调 `shutdown()`）。
 - 拆除只把 `active` 置 0，历史记录保留在 `formations` 表中。
 
 ## `formations` 表字段

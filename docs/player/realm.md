@@ -9,8 +9,8 @@
 | 境界配置读取 | `src/main/java/com/mtxgdn/game/config/GameConfigLoader.java` |
 | 境界数据实体 | `src/main/java/com/mtxgdn/game/entity/RealmConfig.java` |
 | 突破与天劫 | `src/main/java/com/mtxgdn/game/service/RealmService.java` |
-| 突破指令 | `src/main/java/com/mtxgdn/onebot/command/cultivation/BreakthroughCommand.java` |
-| 转世 | `src/main/java/com/mtxgdn/onebot/command/cultivation/ReincarnateCommand.java` |
+| 突破指令 | `src/main/java/com/mtxgdn/game/command/cultivation/BreakthroughCommand.java` |
+| 转世 | `src/main/java/com/mtxgdn/game/command/cultivation/ReincarnateCommand.java` |
 | 配置本体 | `src/main/resources/game/realm_config.json` |
 | 连败 / 凝实参数 | `src/main/resources/application.yml` 的 `breakthrough:` 段 |
 | 回归测试 | `src/test/java/com/mtxgdn/game/service/BreakthroughPityTest.java`（16 个用例） |

@@ -10,7 +10,7 @@
 | 签到 | `src/main/java/com/mtxgdn/game/service/EconomyService.java` |
 | 表结构 | `src/main/java/com/mtxgdn/db/DatabaseSchema.java`（`createPlayerDailyTable`） |
 | 迁移 | `src/main/java/com/mtxgdn/db/DatabaseMigration.java`（`pvp_count` 列） |
-| 指令 | `src/main/java/com/mtxgdn/onebot/command/daily/DailyCommand.java`、`MorningCommand.java`、`src/main/java/com/mtxgdn/onebot/command/economy/SignInCommand.java` |
+| 指令 | `src/main/java/com/mtxgdn/game/command/daily/DailyCommand.java`、`MorningCommand.java`、`src/main/java/com/mtxgdn/game/command/economy/SignInCommand.java` |
 
 ## 一、指令
 

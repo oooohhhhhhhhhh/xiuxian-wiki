@@ -325,7 +325,7 @@ public void onEnable(PluginContext context) {
 | 配置读写 | 插件的独立配置 |
 | 语言/文案 | 读取语言文件 |
 | 资源访问 | 类加载器与数据目录（`PluginContext.createSharedContext(new File("data"), classLoader)`） |
-| 服务获取 | 通过 `ServiceRegistry` 调用玩法服务 |
+| 服务获取 | 通过 `ctx.getService(XxxApi.class)` 拿核心/插件服务（底层 `PluginServiceRegistry`，未注册时回落当前容器） |
 
 内置插件共用**一个** shared context（`Main` 里创建），
 所以资源与数据目录是统一的；外部插件各有自己的 context。

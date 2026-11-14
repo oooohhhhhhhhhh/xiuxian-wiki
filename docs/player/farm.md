@@ -1,6 +1,6 @@
 # 灵田（种田系统）
 
-灵田是异步挂机玩法：买种子 → 种下 → 等生长 → 浇水施肥 → 收获作物。生长**没有后台定时任务**——服务端在玩家访问农田时按 `settled_time` 到当前时刻的时间差一次性结算，因此玩家离线期间作物照常生长。实现位于 `src/main/java/com/mtxgdn/game/service/FarmService.java`（1008 行），配置在 `game/entity/CropConfig.java`、`game/entity/FarmPlot.java`，QQ 入口为 `src/main/java/com/mtxgdn/onebot/command/farm/FarmCommand.java`。
+灵田是异步挂机玩法：买种子 → 种下 → 等生长 → 浇水施肥 → 收获作物。生长**没有后台定时任务**——服务端在玩家访问农田时按 `settled_time` 到当前时刻的时间差一次性结算，因此玩家离线期间作物照常生长。实现位于 `src/main/java/com/mtxgdn/game/service/FarmService.java`（1008 行），配置在 `game/entity/CropConfig.java`、`game/entity/FarmPlot.java`，QQ 入口为 `src/main/java/com/mtxgdn/game/command/farm/FarmCommand.java`。
 
 ## 指令与子命令
 

@@ -8,7 +8,7 @@
 | --- | --- |
 | `src/main/java/com/mtxgdn/game/service/CraftingService.java` | 配方查询、`craft` 结算、熟练度、`insertDefaultRecipes` |
 | `src/main/java/com/mtxgdn/game/entity/Recipe.java` | 配方实体与两个枚举 |
-| `src/main/java/com/mtxgdn/onebot/command/crafting/CraftCommand.java` | `/合成` 与 REST 路由 |
+| `src/main/java/com/mtxgdn/game/command/crafting/CraftCommand.java` | `/合成` 与 REST 路由 |
 | `src/main/java/com/mtxgdn/db/DatabaseSchema.java` | `createRecipesTable` |
 | `src/main/java/com/mtxgdn/db/DatabaseMigration.java` | `addRecipesQualityColumns` 补三列品质字段 |
 

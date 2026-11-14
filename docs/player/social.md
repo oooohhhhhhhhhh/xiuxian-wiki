@@ -18,7 +18,7 @@
 
 ## 好友系统
 
-数据表 `friends`，服务 `com.mtxgdn.game.service.FriendService`，指令 `com.mtxgdn.onebot.command.social.FriendCommand`。
+数据表 `friends`，服务 `com.mtxgdn.game.service.FriendService`，指令 `com.mtxgdn.game.command.social.FriendCommand`。
 
 ### 指令
 
@@ -93,7 +93,7 @@
 
 世界频道**没有 QQ 指令**，只通过 REST / WebSocket / Web 管理台使用：
 
-REST 服务挂在 `/api/` 前缀下（`GameResource` 的 `@Path("/game")`）：
+REST 服务挂在 `/api/` 前缀下（`GameSocialResource` 的 `@Path("/game")`）：
 
 | 方法 | 完整路径 | 权限 | 说明 |
 | --- | --- | --- | --- |
@@ -152,7 +152,7 @@ REST 服务挂在 `/api/` 前缀下（`GameResource` 的 `@Path("/game")`）：
 
 ## 组队系统
 
-服务 `com.mtxgdn.game.service.TeamService`（单例，**纯内存**），指令 `com.mtxgdn.onebot.command.team.TeamCommand`。
+服务 `com.mtxgdn.game.service.TeamService`（单例，**纯内存**），指令 `com.mtxgdn.game.command.team.TeamCommand`。
 
 | 指令 | 说明 |
 | --- | --- |

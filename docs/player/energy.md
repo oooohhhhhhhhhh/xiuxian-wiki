@@ -14,8 +14,8 @@
 | 文件 | 职责 |
 | --- | --- |
 | `src/main/java/com/mtxgdn/game/service/EnergyService.java` | 能量读写、物品能量值解析、转化损耗 |
-| `src/main/java/com/mtxgdn/onebot/command/economy/ExchangeCommand.java` | `/转化` 与 4 个 REST 路由 |
-| `src/main/java/com/mtxgdn/onebot/command/admin/EnergyAdminCommand.java` | `/能量管理` 与 4 个管理 REST 路由 |
+| `src/main/java/com/mtxgdn/game/command/economy/ExchangeCommand.java` | `/转化` 与 4 个 REST 路由 |
+| `src/main/java/com/mtxgdn/game/command/admin/EnergyAdminCommand.java` | `/能量管理` 与 4 个管理 REST 路由 |
 | `src/main/java/com/mtxgdn/plugin/experimental/EnergyExchangePlugin.java` | 实验性插件定义 |
 | `src/main/java/com/mtxgdn/db/DatabaseSchema.java` | `createPlayerEnergyTable` |
 

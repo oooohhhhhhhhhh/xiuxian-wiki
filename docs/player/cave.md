@@ -1,6 +1,6 @@
 # 洞府
 
-洞府是玩家的私人修炼据点：自动汇聚**灵气**、提供**修炼加成**、扩展**背包存储**，并可被阵法进一步强化。实现位于 `src/main/java/com/mtxgdn/game/service/CaveService.java`（358 行）、实体 `game/entity/Cave.java`，QQ 入口为 `src/main/java/com/mtxgdn/onebot/command/cave/CaveCommand.java`。
+洞府是玩家的私人修炼据点：自动汇聚**灵气**、提供**修炼加成**、扩展**背包存储**，并可被阵法进一步强化。实现位于 `src/main/java/com/mtxgdn/game/service/CaveService.java`、实体 `game/entity/Cave.java`，QQ 入口为 `src/main/java/com/mtxgdn/game/command/cave/CaveCommand.java`。
 
 ## 指令与接口
 
@@ -11,7 +11,7 @@
 | `create` | `开辟` | `[名称]` | 开辟洞府（金丹期 + 300 灵石） |
 | `info` | `信息` | — | 查看洞府详情与升级花费 |
 | `collect` | `收集` | — | 收集灵气转化为灵石（每 5 分钟一次） |
-| `meditate` | `冥想` | — | 在洞府中打坐，获得经验（有心魔风险） |
+| `meditate` | `冥想` | — | 在洞府中打坐，获得经验（有心魔风险；每 5 分钟一次） |
 | `levelup` | `升级` | — | 消耗灵石升级洞府 |
 | `help` | `帮助`、`?` | — | 帮助文本 |
 
@@ -90,7 +90,7 @@ public static void tickSpiritEnergy() {
 
 | 项 | 内容 |
 | --- | --- |
-| 调度器 | 单线程 `ScheduledExecutorService`（**非守护线程**，用 `CaveService.shutdown()` 停止） |
+| 调度器 | 单线程守护 `ScheduledExecutorService`（`Schedulers.newDaemonSingle("cave-spirit-energy")`，由 `ServiceContainer` 统一启停） |
 | 首次延迟 / 周期 | 10 秒 / 10 秒 |
 | 每次增长 | **+10 灵气**，封顶 `max_spirit_energy` |
 | 增长速率 | **每秒 +1**（10 秒 +10） |
@@ -138,7 +138,7 @@ public static int getMaxSpiritEnergyForLevel(int level) {
 ### 阵法加成
 
 ```java
-int formationBoost = ServiceRegistry.getFormationService().getTotalSpiritEnergyBoost(playerId);
+int formationBoost = services.getFormationService().getTotalSpiritEnergyBoost(playerId);
 long boostedEnergy = spiritEnergy;
 if (formationBoost > 0) {
     boostedEnergy = spiritEnergy * (100 + formationBoost) / 100;
@@ -196,7 +196,7 @@ public static long getLevelUpCost(int currentLevel) { return currentLevel * 500;
 
 ```java
 int caveBonus = cave.getCultivationBonus();
-int formationBonus = ServiceRegistry.getFormationService().getTotalCultivationBonus(playerId);
+int formationBonus = services.getFormationService().getTotalCultivationBonus(playerId);
 int totalBonus = caveBonus + formationBonus;
 long expGain = 100 + (long) totalBonus * 10;
 ```
@@ -212,8 +212,20 @@ long expGain = 100 + (long) totalBonus * 10;
 | 5 | +25% | 350 | 450 |
 | 10 | +50% | 600 | 700 |
 
-::: warning 冥想是"立即结算"而非挂机
-每次执行 `/洞府 meditate` 立刻发放一次经验，**没有冷却、没有次数限制**。它不依赖 `player.isCultivating()`（闭关状态），也不消耗灵气。因此它是与闭关修炼并行的独立收益渠道。
+### 冷却
+
+冥想是"立即结算"而非挂机：每次执行 `/洞府 meditate` 立刻发放一次经验，不依赖
+`player.isCultivating()`（闭关状态），也不消耗灵气。但它**有 5 分钟冷却**
+（`cave.meditate_cooldown_seconds` 可配，默认 300 秒）：
+
+* 冷却记在 `caves.last_meditate_time`，首次冥想无需等待；
+* 冷却中会提示还需等待多少秒，且**不会**发放经验；
+* 并发连点由条件 `UPDATE ... WHERE last_meditate_time = 0 OR last_meditate_time <= ?`
+  原子占位，两个请求不会同时通过。
+
+::: warning 曾经没有冷却
+早期版本冥想完全没有冷却和次数限制，连点即可无限刷经验；现已按"每 5 分钟一次"定档，
+与"每 5 分钟收一次灵气"的洞府节奏一致。
 :::
 
 ### 心魔劫
@@ -221,7 +233,7 @@ long expGain = 100 + (long) totalBonus * 10;
 冥想会走心魔判定（`HeartDemonService.processCultivationWithCave(playerId, expGain, 30, totalCaveLevelForHeartDemon)`）：
 
 ```java
-int formationResist = ServiceRegistry.getFormationService().getTotalHeartDemonResist(playerId);
+int formationResist = services.getFormationService().getTotalHeartDemonResist(playerId);
 int totalCaveLevelForHeartDemon = cave.getLevel() + (formationResist / 2);
 ```
 
@@ -284,7 +296,7 @@ inventory:
 
 ```java
 // 洞府/阵法修炼加成（聚灵阵等）
-int formationBonus = ServiceRegistry.getFormationService().getTotalCultivationBonus(player.getId());
+int formationBonus = services.getFormationService().getTotalCultivationBonus(player.getId());
 if (formationBonus > 0) {
     mult *= (1 + formationBonus / 100.0);
 }
@@ -308,6 +320,7 @@ if (formationBonus > 0) {
 | `cultivation_bonus` | `INT DEFAULT 5` | 修炼加成（%），随等级更新 |
 | `storage_bonus` | `INT DEFAULT 10` | 存储加成（格），随等级更新 |
 | `last_collect_time` | `BIGINT DEFAULT 0` | 上次收集时间（毫秒时间戳），5 分钟冷却依据 |
+| `last_meditate_time` | `BIGINT DEFAULT 0` | 上次冥想时间（毫秒时间戳），冥想 5 分钟冷却依据；迁移 `026` 新增 |
 | `created_at` / `updated_at` | 时间戳 | 创建/更新时间 |
 
 ::: danger `spirit_energy` 是 BIGINT 但上限是 INT
@@ -328,7 +341,7 @@ if (formationBonus > 0) {
 
 可用操作:
   /洞府 collect   收集灵气
-  /洞府 meditate  洞中冥想
+  /洞府 meditate  洞中冥想（5 分钟冷却）
   /洞府 levelup   升级洞府
 ```
 
@@ -341,7 +354,7 @@ if (formationBonus > 0) {
 
 ▍快捷操作
   /洞府 collect   收集灵气
-  /洞府 meditate  洞中冥想
+  /洞府 meditate  洞中冥想（5 分钟冷却）
   /洞府 levelup   升级洞府
 ```
 

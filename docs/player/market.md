@@ -1,6 +1,6 @@
 # 坊市（玩家交易）
 
-坊市是玩家之间用**灵石**买卖物品的挂单市场。它由 `TradeService`（`src/main/java/com/mtxgdn/game/service/TradeService.java`）实现，QQ 指令位于 `src/main/java/com/mtxgdn/onebot/command/market/`。
+坊市是玩家之间用**灵石**买卖物品的挂单市场。它由 `TradeService`（`src/main/java/com/mtxgdn/game/service/TradeService.java`）实现，QQ 指令位于 `src/main/java/com/mtxgdn/game/command/market/`。
 
 与[竞拍行](/player/economy#竞拍行)的区别：坊市是**一口价挂单**（谁先买谁得），竞拍行是**竞价**（到点结算给出价最高者）。
 
@@ -84,7 +84,7 @@ ps.setTimestamp(6, new java.sql.Timestamp(
 - 首次延迟 20 秒是为了等数据库初始化完成；清理任务首次延迟 5 分钟以避开启动高峰。
 - 两个任务**共用同一个单线程调度器**：都是低频 DB 操作，串行执行反而避免互相争抢连接。
 - 调度体整体 `try/catch(Throwable)`，**一次失败不会终止后续所有 tick**。
-- 线程 `setDaemon(true)`，不阻止 JVM 退出；`TradeService.shutdown()` 可显式停止（服务端关闭/测试清理时调用）。
+- 线程为守护线程，不阻止 JVM 退出；调度器由 `ServiceContainer` 统一启停（`BackgroundTaskOwner`），关服时随容器 `close()` 停止。
 
 ### 回收的并发安全：先抢占，再退回
 

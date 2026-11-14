@@ -193,7 +193,8 @@ xiuxian-server/
 │   │   ├── plugin/                  # 插件系统（生命周期 / 事件总线 / Web UI / 开关）
 │   │   │   └── builtin/             # 内置玩法模块与消息通道模块
 │   │   ├── adapter/                 # 消息通道适配器框架（读 config/adapters.json）
-│   │   ├── onebot/                  # OneBot 接入 + 指令体系（com.mtxgdn.onebot.command）
+│   │   ├── game/command/            # 玩法指令（端无关，com.mtxgdn.game.command）
+│   │   ├── onebot/                  # OneBot 接入 + 账号流程指令（com.mtxgdn.onebot.command）
 │   │   ├── qq/                      # QQ 官方机器人通道（webhook / 按钮）
 │   │   ├── minecraft/               # MOTD 服务 + 内嵌服务器适配 + Bukkit 桥接
 │   │   ├── playerdata/              # 玩家数据文件化（JSON 落盘 / 导出还原）
