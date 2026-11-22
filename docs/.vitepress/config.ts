@@ -141,6 +141,7 @@ export default defineConfig({
             { text: '权限系统', link: '/dev/permissions' },
             { text: '多语言（i18n）', link: '/dev/i18n' },
             { text: '消息通道与适配器', link: '/dev/adapters' },
+            { text: '沙箱模拟', link: '/dev/sandbox' },
             { text: '插件开发', link: '/dev/plugin-dev' },
             { text: 'Web 管理控制台', link: '/dev/webadmin' },
           ],

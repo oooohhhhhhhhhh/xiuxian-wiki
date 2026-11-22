@@ -60,7 +60,8 @@ Authorization: Bearer <admin-token>
 
 ## 功能页
 
-侧边栏共 16 个页签（`data-tab` 值即模块名）：
+侧边栏共 16 个管理页签（`data-tab` 值即模块名，清单以 `layout.js` 的
+`ADMIN_TABS` 为准）：
 
 | 分组 | 页签 | `data-tab` | 说明 |
 | --- | --- | --- | --- |
@@ -72,14 +73,18 @@ Authorization: Bearer <admin-token>
 | 系统 | 🗄️ 数据库 | `database` | 浏览所有表、查看/编辑行数据、清档、重置 |
 | 系统 | 🔑 用户/角色 | `users` | 用户、角色、权限的增删改 |
 | 系统 | 📜 实时日志 | `logs` | 滚动查看服务端日志 |
-| 系统 | 👣 玩家轨迹 | `traces` | 玩家操作审计（`admin.logs.view`） |
+| 系统 | 👣 玩家轨迹 | `audit` | 玩家操作审计（`admin.logs.view`） |
 | 系统 | 🎫 兑换码 | `redeemCodes` | 生成/管理兑换码 |
 | 系统 | 🏆 称号管理 | `titles` | 称号列表与发放 |
 | 系统 | 🏪 坊市管理 | `market` | 挂单、行情、异常挂单处理 |
 | 系统 | 🔌 适配器 | `adapters` | 查看/启停消息通道实例 |
+| 系统 | 🧪 沙箱模拟 | `sandbox` | 在自动创建的沙箱角色里跑真实指令，验证玩法链路而不碰真实玩家（`admin.sandbox`） |
 | 系统 | 🧩 插件管理 | `plugins` | 内置插件开关、外部插件加载/卸载 |
 | 系统 | 🔐 OAuth2 | `oauth` | OAuth2 客户端与令牌 |
 | （隐藏） | 👤 我的信息 | `myProfile` | 默认 `display:none`，登录后按需显示 |
+
+另有 `authorizedApps`（已授权应用）与 `oauthConsent`（OAuth 授权同意页）两个隐藏页签，
+只对玩家登录态开放，不占管理侧边栏。
 
 ::: tip 权限决定你看到什么
 页签**不会**因为权限不足而隐藏（`myProfile` 除外，它是靠内联样式隐藏的），

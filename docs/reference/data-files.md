@@ -92,6 +92,7 @@ JAR 目录: /opt/xiuxian
 | `data/` | 工作目录 | 插件共享数据目录（`PluginContext.createSharedContext(new File("data"), ...)`） |
 | `data/players/` | 工作目录 | 玩家数据文件化落盘（`player-data.dir`） |
 | `data/wilderness/` | 工作目录 | 野外分片文件（每片一个 JSON，`wilderness.dir`，见[野外（无限分片世界）](/player/wilderness)） |
+| `data/sandbox/` | 工作目录 | 沙箱会话与指令历史（`sessions.json` + `history.jsonl`，`sandbox` 适配器的 `data_dir`） |
 | `log/` | 工作目录 | 日志输出目录（`logging.dir`，默认 `log`） |
 | `plugins/` | 工作目录 | 外部插件 jar（`pm.init(new File("plugins"))`） |
 

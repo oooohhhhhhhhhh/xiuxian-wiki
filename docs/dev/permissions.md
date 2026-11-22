@@ -5,20 +5,20 @@
 
 ## 权限码
 
-权限码定义在 `PermissionCode` 枚举里，共 **71 个**，分三个大类：
+权限码定义在 `PermissionCode` 枚举里，共 **75 个**，分三个大类：
 
 | 分类 | 数量 | 前缀 |
 | --- | --- | --- |
-| 游戏功能 | 42 | `game.*` |
+| 游戏功能 | 44 | `game.*` |
 | QQ 指令 | 6 | `qq.*` |
-| 管理后台 | 23 | `admin.*` |
+| 管理后台 | 25 | `admin.*` |
 
 ::: tip 数量怎么核
-枚举里 `PermissionCode` 的构造调用共 71 处，`game.*` 42 个、`qq.*` 6 个、`admin.*` 23 个，
-合计 71。分类字段（第三列）不影响归类，归类看的是权限码前缀。
+枚举里 `PermissionCode` 的构造调用共 75 处，`game.*` 44 个、`qq.*` 6 个、`admin.*` 25 个，
+合计 75。分类字段（第三列）不影响归类，归类看的是权限码前缀。
 :::
 
-### 游戏功能 `game.*`（42）
+### 游戏功能 `game.*`（44）
 
 | 权限码 | 名称 |
 | --- | --- |
@@ -43,6 +43,7 @@
 | `game.crafting.craft` | 制造物品 |
 | `game.equipment.enhance` | 装备强化 |
 | `game.equipment.equip` | 装备物品 |
+| `game.equipment.repair` | 修理装备 |
 | `game.market.view` | 查看坊市 |
 | `game.market.trade` | 坊市交易 |
 | `game.market.list` | 坊市上架 |
@@ -82,7 +83,7 @@
 | `qq.command.admin` | 管理指令 |
 | `qq.command.trace` | 查看玩家轨迹 |
 
-### 管理后台 `admin.*`（24）
+### 管理后台 `admin.*`（25）
 
 | 权限码 | 名称 |
 | --- | --- |
@@ -109,6 +110,7 @@
 | `admin.redeem.code.manage` | 管理兑换码 |
 | `admin.oauth.manage` | 管理 OAuth2 配置 |
 | `admin.fix.equipment` | 修复装备数据 |
+| `admin.sandbox` | 沙箱模拟（在沙箱角色里跑真实指令） |
 | `admin.debug` | 调试指令 |
 
 ## 角色
@@ -117,10 +119,10 @@
 
 | 角色 | 层级 | 权限码数量 | 说明 |
 | --- | --- | --- | --- |
-| `SUPER_ADMIN` | 100 | **71**（全部） | 最高权限，且**直接跳过权限校验** |
-| `ADMIN` | 80 | **67** | 全部权限，但缺 4 个最高管理权限 |
-| `MODERATOR` | 50 | **51** | 玩家权限 + 管理查看权限 |
-| `PLAYER` | 10 | **46** | 全部 `game.*` 与 `qq.*`（有例外，见下） |
+| `SUPER_ADMIN` | 100 | **75**（全部） | 最高权限，且**直接跳过权限校验** |
+| `ADMIN` | 80 | **71** | 全部权限，但缺 4 个最高管理权限 |
+| `MODERATOR` | 50 | **53** | 玩家权限 + 管理查看权限 |
+| `PLAYER` | 10 | **48** | 全部 `game.*` 与 `qq.*`（有例外，见下） |
 | `GUEST` | 0 | **1** | 仅基本查询 |
 
 ### PLAYER 的构成
@@ -132,7 +134,7 @@
 | `game.item.add` | 发放物品属于管理员操作，玩家不可自刷 |
 | `qq.command.admin` | QQ 管理指令不对普通玩家开放 |
 
-即 41 个 `game.*` + 5 个 `qq.*` = **46 个**。
+即 43 个 `game.*` + 5 个 `qq.*` = **48 个**。
 
 ### MODERATOR 的构成
 
@@ -140,11 +142,11 @@
 
 `admin.login`、`admin.status`、`admin.logs.view`、`admin.blacklist.view`、`qq.command.admin`
 
-即 46 + 5 = **51 个**。
+即 48 + 5 = **53 个**。
 
 ### ADMIN 的构成
 
-取**全部 71 个**权限码，然后**移除 4 个**：
+取**全部 75 个**权限码，然后**移除 4 个**：
 
 | 移除的权限码 | 含义 |
 | --- | --- |
@@ -153,7 +155,7 @@
 | `admin.database.clear_players` | 清除玩家数据 |
 | `admin.database.reset_all` | 重置全部数据 |
 
-即 71 − 4 = **67 个**。
+即 75 − 4 = **71 个**。
 
 ::: tip 所以 ADMIN 拥有 admin.economy
 `admin.economy` **不在**被移除的 4 个之内，所以 `ADMIN` 角色是可以管理经济的。

@@ -44,7 +44,7 @@
 | 字段 | 说明 |
 | --- | --- |
 | `id` | 实例唯一标识（用于启停、状态查询） |
-| `type` | 适配器类型，必须是内置 4 种之一或插件注册的自定义类型 |
+| `type` | 适配器类型，必须是内置 5 种之一或插件注册的自定义类型 |
 | `enabled` | 该实例是否启用 |
 | `config` | 类型专属配置，键值随意（由适配器自己解释） |
 
@@ -54,11 +54,12 @@
 
 - `onebot-default`（**启用**，端口 `6700`）
 - `minecraft-default`（**禁用**）
+- `sandbox-default`（**启用**，数据目录 `data/sandbox`）
 
 文件损坏（JSON 解析失败）时也会回退到默认配置并重写。
 :::
 
-## 内置 4 种类型
+## 内置 5 种类型
 
 | `type` | 名称 | 实现类 |
 | --- | --- | --- |
@@ -66,8 +67,9 @@
 | `qq` | QQ 官方机器人 | `QqOfficialAdapter` |
 | `minecraft` | Minecraft 内嵌服务端 | `MinecraftAdapter` |
 | `minecraft-player` | Minecraft 玩家直连 | `MinecraftPlayerAdapter` |
+| `sandbox` | 沙箱模拟 | `SandboxAdapter` |
 
-`AdapterManager.isBuiltInType(type)` 用 `switch` 判定，只有这 4 个返回 `true`。
+`AdapterManager.isBuiltInAdapterType(type)` 用 `switch` 判定，只有这 5 个返回 `true`。
 
 ### OneBot
 
